@@ -77,14 +77,8 @@ double FloatHistogramFeatureDescriptor::distance(FeatureDescriptor * other_descr
 	if(other_descriptor->type == type){
 		float * disc 	= ((FloatHistogramFeatureDescriptor*)other_descriptor)->descriptor;
 		double sum = 0;
-		for(int i = 0; i < length; i++){
-			if(disc[i] < descriptor[i]){
-				sum += disc[i];
-			}else{
-				sum += descriptor[i];
-			}
-		}
-		return 1-sum;
+		for(int i = 0; i < length; i++){sum += (disc[i]-descriptor[i])*(disc[i]-descriptor[i]);}
+		return sum;
 	}else{
 		return -1;
 	}

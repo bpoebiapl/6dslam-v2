@@ -42,6 +42,7 @@ class Plane
 	Plane(pcl::PointXYZRGBNormal * pa, pcl::PointXYZRGBNormal * pb,pcl::PointXYZRGBNormal * pc);
 
 	Plane(std::vector<Point *> * points);
+	Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz);
 	Plane(std::vector<pcl::PointXYZRGBNormal *> * points);
 	
 	Plane();
@@ -58,6 +59,7 @@ class Plane
 	void project_points(std::vector<Point *> points);
 	void project_points(std::vector<pcl::PointXYZRGBNormal *> points);
 	
+	float distance(float x, float y, float z);
 	float distance(Point * point);
 	float angle(Plane * p);
 	float distance(pcl::PointXYZRGBNormal * point);

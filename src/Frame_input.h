@@ -2,6 +2,8 @@
 #define Frame_input_H_
 #include <string>
 #include <stdio.h>
+#include "FeatureDescriptor.h"
+#include <vector>
 using namespace std;
 class Calibration{
 	public:
@@ -11,6 +13,7 @@ class Calibration{
 	float cy;
 	float ds;
 	float scale;
+	vector<FeatureDescriptor * > words;
 };
 
 class Frame_input{

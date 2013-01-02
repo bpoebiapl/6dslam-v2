@@ -21,7 +21,7 @@ using namespace std;
 
 Map3Dbow::Map3Dbow(){}
 Map3Dbow::~Map3Dbow(){}
-void Map3Dbow::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor));}
+void Map3Dbow::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor,segmentation));}
 void Map3Dbow::addFrame(RGBDFrame * frame){
 	printf("Map3Dbow::addFrame(RGBDFrame * frame)\n");
 	frames.push_back(frame);
@@ -35,7 +35,15 @@ void Map3Dbow::estimate(){
 		for(int j = 0; j < current->valid_key_points.size(); j++){descriptors.push_back(current->valid_key_points.at(j)->descriptor);}
 		for(int j = 0; j < current->invalid_key_points.size(); j++){descriptors.push_back(current->invalid_key_points.at(j)->descriptor);}	
 	}
-	vector<FeatureDescriptor * > * words = kmeans(descriptors, 5, 100, 500);
+	vector<FeatureDescriptor * > * bags = kmeans(descriptors, 2, 20, 300);
+	
+	for(int i = 0; i < bags->size(); i++){
+		char buff[50];
+		sprintf(buff,"output/bowTest_%i.feature.ORB",i);
+		bags->at(i)->store(string(buff));
+		bags->at(i)->print();
+		new OrbFeatureDescriptor(string(buff));
+	}
 	printf("estimate done\n");
 }
 void Map3Dbow::setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view){viewer = view;}

@@ -1,20 +1,34 @@
 #include "VertexPlane.h"
-#include <typeinfo>
+#include "g2o/core/factory.h"
+
+#include <iostream>
 
 namespace g2o {
-
-	VertexPlane::VertexPlane() : BaseVertex<4, Vector4f>(){_estimate.setZero();}
-
-	bool VertexPlane::read(std::istream& is)
-	{
-		is >> estimate()[0] >> estimate()[1] >> estimate()[2] >> estimate()[3];
-		return true;
+int VertexPlaneCounter = 0;
+	VertexPlane::VertexPlane() : BaseVertex<6, SE3Quat>(){
+		rx=0;
+		ry=0;
+		rz=1;
+		d=0;
+		id=VertexPlaneCounter++;
 	}
 
-	bool VertexPlane::write(std::ostream& os) const
-	{
-		os << estimate()(0) << " " << estimate()(1) << " " << estimate()(2) << " " << estimate()(3);
-		return os.good();
-	}
+  bool VertexPlane::read(std::istream& is)
+  {
+  /*
+    for (int i=0; i<4; i++)
+      is  >> estimate()[i];
+    estimate().rotation().normalize();
+    */
+    return true;
+  }
 
+  bool VertexPlane::write(std::ostream& os) const
+  {
+  /*
+    for (int i=0; i<4; i++)
+      os << estimate()[i] << " ";
+  */
+    return os.good();
+  }
 }

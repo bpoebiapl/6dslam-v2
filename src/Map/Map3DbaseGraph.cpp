@@ -76,30 +76,41 @@ g2o::EdgeSE3 * Map3DbaseGraph::getG2OEdge(Transformation * transformation)
 	return edgeSE3;
 }
 
-void Map3DbaseGraph::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor));}
+void Map3DbaseGraph::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor,segmentation));}
 void Map3DbaseGraph::addFrame(RGBDFrame * frame){
 	printf("Map3DbaseGraph::addFrame(RGBDFrame * frame)\n");
-
-	
+	Matrix4f pose;
+	Transformation * t = 0;
 	if(frames.size() > 0){
-		transformations.push_back(matcher->getTransformation(frame, frames.back()));
-		poses.push_back(poses.back()*transformations.back()->transformationMatrix);
-		//poses.push_back(Matrix4f::Identity());
-	}else{poses.push_back(Matrix4f::Identity());}
-	
-	Eigen::Affine3f eigenTransform(poses.back());
-	Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
-	g2o::SE3Quat poseSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
-	g2o::VertexSE3 * vertexSE3 = new g2o::VertexSE3();
-	vertexSE3->setId(frame->id);
-	vertexSE3->estimate() = poseSE3;
-	graphoptimizer.addVertex(vertexSE3);
-	frame->g2oVertex = vertexSE3;
-	if(frames.size() == 0){vertexSE3->setFixed(true);}
-	else{addTransformation(transformations.back());}
+		t = matcher->getTransformation(frame, frames.back());
+		pose = poses.back()*t->transformationMatrix;
+	}else{pose = Matrix4f::Identity();}
+	poses.push_back(pose);
 	frames.push_back(frame);
+	
+	if(t != 0){transformations.push_back(t);}
+	
+	int stop = frames.size()-2;
+	FeatureDescriptor * frame_desc = frame->image_descriptor;
+	for(int i = 0; i < stop; i++){
+		RGBDFrame * test = frames.at(i);
+		//printf("look:%i,%i,%f\n",frame->id,test->id,test->image_descriptor->distance(frame_desc));
+		if(test->image_descriptor->distance(frame_desc) < 0.0025){
+			printf("%i,%i\n",frame->id,test->id);
+			
+			t = matcher->getTransformation(frame, test);
+			//printf("add:%i,%i->%f\n",frame->id,test->id,t->weight);
+			if(t->weight > 65){
+				printf("add:%i,%i->%f\n",frame->id,test->id,t->weight);
+				transformations.push_back(t);
+			}
+			
+		}
+	}
 }
 void Map3DbaseGraph::addTransformation(Transformation * transformation){
+	transformations.push_back(transformation);
+	/*
 	Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
 	Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 	g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
@@ -112,16 +123,45 @@ void Map3DbaseGraph::addTransformation(Transformation * transformation){
 	mat.setIdentity(6,6);
 	edgeSE3->information() = mat;
 	graphoptimizer.addEdge(edgeSE3);
+	*/
 }
 void Map3DbaseGraph::estimate(){
 	printf("estimate\n");
-	//graphoptimizer.initializeOptimization();
+	printf("nr frames: %i nr trans: %i\n",frames.size(),transformations.size());
+	for(int i  = 0; i < frames.size(); i++){
+		Eigen::Affine3f eigenTransform(poses.at(i));
+		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
+		g2o::SE3Quat poseSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
+		g2o::VertexSE3 * vertexSE3 = new g2o::VertexSE3();
+		vertexSE3->setId(frames.at(i)->id);
+		vertexSE3->estimate() = poseSE3;
+		graphoptimizer.addVertex(vertexSE3);
+		frames.at(i)->g2oVertex = vertexSE3;
+		if(i == 0){vertexSE3->setFixed(true);}
+	}
+	
+	for(int i  = 0; i < transformations.size(); i++){
+		Transformation * transformation = transformations.at(i);
+		Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
+		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
+		g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
+		g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;	
+		edgeSE3->vertices()[0] = graphoptimizer.vertex(transformation->src->id);
+		edgeSE3->vertices()[1] = graphoptimizer.vertex(transformation->dst->id);
+		edgeSE3->setMeasurement(transfoSE3.inverse());
+		edgeSE3->setInverseMeasurement(transfoSE3);
+		Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
+		mat.setIdentity(6,6);
+		edgeSE3->information() = mat;
+		graphoptimizer.addEdge(edgeSE3);
+	}
+	graphoptimizer.initializeOptimization();
 	graphoptimizer.setVerbose(true);
 	graphoptimizer.optimize(50);
 	for(int i  = 0; i < frames.size(); i++){
 		g2o::VertexSE3 * vertexSE3_src = (g2o::VertexSE3*)(graphoptimizer.vertex(frames.at(i)->id));
 		poses.at(i) = (vertexSE3_src->estimate().to_homogenious_matrix()).cast<float>();
-		cout<<i<<endl<<poses.at(i)<<endl;
+		//cout<<i<<endl<<poses.at(i)<<endl;
 	}
 	printf("estimate done\n");
 }

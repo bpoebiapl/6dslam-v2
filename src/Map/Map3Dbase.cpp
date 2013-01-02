@@ -26,11 +26,15 @@ using namespace std;
 
 Map3Dbase::Map3Dbase(){}
 Map3Dbase::~Map3Dbase(){}
-void Map3Dbase::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor));}
+void Map3Dbase::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor,segmentation));}
 void Map3Dbase::addFrame(RGBDFrame * frame){
 	printf("Map3Dbase::addFrame(RGBDFrame * frame)\n");
 	if(frames.size() > 0){
 		transformations.push_back(matcher->getTransformation(frame, frames.back()));
+	}
+	for(int i = 0; i < frames.size(); i++){
+		float d = frames.at(i)->image_descriptor->distance(frame->image_descriptor);
+		//printf("d: %f\n",d);
 	}
 	frames.push_back(frame);
 }
