@@ -14,12 +14,14 @@
 #include "Map/Map3Dbase.h"
 #include "Map/Map3Dbow.h"
 #include "Map/Map3DbaseGraph.h"
+#include "Map/Map3DPlanesGraph.h"
 #include "graph/graph.h"
 #include "FeatureDescriptor/FeatureDescriptor.h"
 #include "core/core.h"
 #include "FeatureExtractor/FeatureExtractor.h"
 #include "mygeometry/mygeometry.h"
 #include "FrameMatcher/FrameMatcher.h"
+#include "RGBDSegmentation/RGBDSegmentation.h"
 
 using namespace std;
 using namespace Eigen;
@@ -42,88 +44,7 @@ vector< Frame_input * > * getFrameInput(string path,int start, int max, Calibrat
 	}
 	return all_input;
 }
-/*
-bool goToNext = false;
-void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,
-                            void* viewer_void)
-{
-	printf("key pressed\n");
-	goToNext = true;
 
-}
-
-void test(vector< RGBDFrame * > * all_frames, FrameMatcher * matcher)
-{
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-	cloud->width    = 1000000;
-	cloud->height   = 1;
-	cloud->points.resize (cloud->width * cloud->height);
-	
-	pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-	
-	Eigen::Matrix4f transformationMat = Eigen::Matrix4f::Identity();
-	Eigen::Matrix4f current = transformationMat;
-	Eigen::Matrix4f prev = transformationMat;
-	
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-	viewer->setBackgroundColor (0.5f, 0.5f, 0.5f);
-	viewer->addCoordinateSystem (1.0);
-	viewer->initCameraParameters ();
-	viewer->setBackgroundColor (0, 0, 0);
-	viewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-	
-	int display = 0;
-	int start = 0;
-	int step = 2;
-	int counter = 0;
-	for(int i = step+start; i < (int)all_frames->size(); i+=step){
-		printf("------------------------------------------------------------------------------------------\n");
-		printf("i:%i\n",i);
-		Transformation * trans = matcher->getTransformation(all_frames->at(i-step), all_frames->at(i));
-		current = (trans->transformationMatrix).inverse();
-		cout<<current<<endl;
-		Eigen::Matrix4f current_diff = current-prev;
-		float diff = 0;//
-		for(int i = 0; i < 3; i++){for(int j = 0; j < 3; j++){diff += current_diff(i,j)*current_diff(i,j);}}
-		float poss_diff = sqrt(current_diff(0,3)*current_diff(0,3)+current_diff(1,3)*current_diff(1,3)+current_diff(2,3)*current_diff(2,3));
-		printf("diff: %f || poss_diff: %f || weight: %f\n",diff,poss_diff,trans->weight);
-		transformationMat*=current;
-		prev = current;
-		
-		pcl::transformPointCloud (*(all_frames->at(i)->xyz_), *tmp_cloud, transformationMat);
-		int randr = rand()%256;
-		int randg = rand()%256;
-		int randb = rand()%256;
-		for(int j = 0; j < tmp_cloud->width*tmp_cloud->height; j++)
-		{
-			cloud->points[counter+j].x = tmp_cloud->points[j].x;
-			cloud->points[counter+j].y = tmp_cloud->points[j].y;
-			cloud->points[counter+j].z = tmp_cloud->points[j].z;
-			cloud->points[counter+j].r = randr;
-			cloud->points[counter+j].g = randg;
-			cloud->points[counter+j].b = randb;
-
-		}
-		counter+=tmp_cloud->width*tmp_cloud->height;
-		cloud->width    = counter;
-		
-		if(display%5 == 0){
-			pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-			viewer->removePointCloud("sample cloud");
-			viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-		
-			usleep(100);
-			goToNext = false;
-			while (!goToNext){
-				viewer->spinOnce (100);
-				boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-			}
-		}
-		display++;
-	}
-}
-*/
 int main(int argc, char **argv)
 {
 	printf("--------------------START--------------------\n");
@@ -133,6 +54,13 @@ int main(int argc, char **argv)
 	viewer->initCameraParameters ();
 	viewer->setBackgroundColor (0, 0, 0);
 	
+	vector<FeatureDescriptor * > words;
+	for(int i = 0; i < 300; i++){
+		char buff[50];
+		sprintf(buff,"output/bowTest_%i.feature.ORB",i);
+		words.push_back(new OrbFeatureDescriptor(string(buff)));
+	}
+	
 	Calibration * calib0 = new Calibration();
 	calib0->fx			= 525.0;
 	calib0->fy			= 525.0;
@@ -140,26 +68,30 @@ int main(int argc, char **argv)
 	calib0->cy			= 239.5;
 	calib0->ds			= 3*1;
 	calib0->scale		= 5000;
+	calib0->words 		= words;
 	
 	OrbExtractor * orb = new OrbExtractor();
 	orb->nr_features = 1300;
 	orb->calibration = calib0;
 	
 	//Map3D * map = new Map3DbaseGraph();
-	Map3D * map = new Map3Dbow();
+	Map3D * map = new Map3DPlanesGraph();
 	AICK * aick = new AICK();
-	aick->max_points = 1300;
+	aick->max_points = 300;
 	aick->distance_threshold = 0.0075f;
 	map->matcher = aick;
+	map->segmentation = new RGBDSegmentationBase();
+	map->segmentation->calibration = calib0;
 	map->extractor = orb;
 	map->setVisualization(viewer);
 
+	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250, 1200,calib0);
 	vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250, 1200,calib0);
-	for(int i = 0; i < all_input->size(); i+=6){
+	for(int i = 0; i < all_input->size(); i+=3){
 		printf("adding %i\n",i);
 		map->addFrame(all_input->at(i));
 	}
-	
+	printf("time to estimate\n");
 	map->estimate();
 	map->visualize();
 	

@@ -40,6 +40,7 @@
 #include "SurfExtractor.h"
 
 #include "RGBDSegmentation.h"
+#include "FloatHistogramFeatureDescriptor.h"
 
 using namespace std;
 class RGBDFrame
@@ -78,7 +79,7 @@ class RGBDFrame
 	void init_segmentation(IplImage* rgb_img,IplImage* depth_img);
 	void init_filter();
 	RGBDFrame();
-	RGBDFrame(Frame_input * fi, FeatureExtractor * extractor);
+	RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegmentation * segmenter);
 	//RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud);
 	RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud, vector<FeatureDescriptor *> * centers);
 	~RGBDFrame();

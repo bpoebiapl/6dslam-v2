@@ -12,6 +12,7 @@
 
 #include "FrameMatcher.h"
 #include "FeatureExtractor.h"
+#include "RGBDSegmentation.h"
 
 using namespace std;
 using namespace Eigen;
@@ -21,7 +22,7 @@ class Map3D
 	public:
 	FrameMatcher * matcher;
 	FeatureExtractor * extractor;
-	//RGBDSegmentation * seg;
+	RGBDSegmentation * segmentation;
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
 	
 	vector<RGBDFrame *> frames;

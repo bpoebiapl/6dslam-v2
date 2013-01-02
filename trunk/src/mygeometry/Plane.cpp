@@ -39,6 +39,94 @@ Plane::Plane(std::vector<Point *> * points)
 	setup(points);
 }
 
+Plane::Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz)
+{
+	color_histogram = 0;
+	id = plane_counter++;
+	use_boundaries = false;
+	float xmean = 0;
+	float ymean = 0;
+	float zmean = 0;
+	float * x = new float[px->size()];
+	float * y = new float[px->size()];
+	float * z = new float[px->size()];
+	for(int i = 0; i < px->size(); i++){
+		xmean+=px->at(i);
+		ymean+=py->at(i);
+		zmean+=pz->at(i);
+		x[i] = px->at(i);
+		y[i] = py->at(i);
+		z[i] = pz->at(i);
+		//printf("[%f %f %f]\n",x[i],y[i],z[i]);
+	}
+	xmean/=float(px->size());
+	ymean/=float(px->size());
+	zmean/=float(px->size());
+	for(int i = 0; i < px->size(); i++){
+		x[i] -= xmean;
+		y[i] -= ymean;
+		z[i] -= zmean;
+	}
+	std::vector<float *> data;
+	data.push_back(x);
+	data.push_back(y);
+	data.push_back(z);
+	
+	int nr_points = px->size();
+	
+	MatrixXf covMat(data.size(),data.size());
+	for(unsigned int i = 0; i < data.size(); i++){
+		for(int unsigned j = i; j < data.size(); j++){
+			float * col1 	= data.at(i);
+			float * col2 	= data.at(j);
+			float sum = 0;
+			for(int k = 0; k < nr_points; k++){
+				sum+=col1[k]*col2[k];
+			}
+			covMat(i,j)=sum/float(nr_points-1);
+			covMat(j,i)=covMat(i,j);
+		}
+	}		
+
+	JacobiSVD<MatrixXf> svd(covMat, ComputeThinU | ComputeThinV);
+	//fit->U = svd.matrixU();
+	VectorXf S = svd.singularValues();
+	//fit->V = svd.matrixV();
+	weight = S(2);
+
+	//printf("lalalalalalala\n");
+	
+	MatrixXf U = svd.matrixU();
+	U = -U;	
+	
+	point_x = xmean;
+	point_y = ymean;
+	point_z = zmean;
+
+	plane_points(0,0) 	= 0;
+	plane_points(0,1) 	= 0;
+	plane_points(0,2) 	= 0;
+	
+	plane_points(1,0) 	= U(0,0);
+	plane_points(1,1) 	= U(1,0);
+	plane_points(1,2) 	= U(2,0);
+	
+	plane_points(2,0) 	= U(0,1);
+	plane_points(2,1) 	= U(1,1);
+	plane_points(2,2) 	= U(2,1);
+	
+	normal_x 			= U(0,2);
+	normal_y 			= U(1,2);
+	normal_z 			= U(2,2);
+	
+	getABCDcoefs();
+	
+	delete[] x;
+	delete[] y;
+	delete[] z;
+	
+}
+
 Plane::Plane(std::vector<pcl::PointXYZRGBNormal *> * points)
 {
 	color_histogram = 0;
@@ -327,11 +415,15 @@ void Plane::setup(Point * a, Point * b,Point * c)
 	point_z = a->z;
 }
 
-inline float Plane::distance(pcl::PointXYZRGBNormal * point){
+float Plane::distance(float x, float y, float z){
+	return (normal_x*(point_x-x) + normal_y*(point_y-y) + normal_z*(point_z-z));
+}
+
+float Plane::distance(pcl::PointXYZRGBNormal * point){
 	return (normal_x*(point_x-point->x) + normal_y*(point_y-point->y) + normal_z*(point_z-point->z));
 }
 
-inline float Plane::distance(Point * point){
+float Plane::distance(Point * point){
 	return normal_x*(point_x-point->x) + normal_y*(point_y-point->y) + normal_z*(point_z-point->z);
 }
 

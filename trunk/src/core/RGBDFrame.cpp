@@ -212,7 +212,7 @@ void RGBDFrame::init_filter(){
 	//printf("3:nr xyz: %i\n",tempCloud->width*tempCloud->height);
 }
 
-RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor)
+RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegmentation * segmenter)
 {
 
 	bool calculate_pointcloud 			= true;
@@ -227,9 +227,51 @@ RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor)
 	input = fi;
 	IplImage* rgb_img 	= cvLoadImage(fi->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 	IplImage* depth_img = cvLoadImage(fi->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	
+	/*
+	cvNamedWindow("rgb_img", CV_WINDOW_AUTOSIZE );
+	cvShowImage("rgb_img", rgb_img);
+	
+	cvNamedWindow("depth_img", CV_WINDOW_AUTOSIZE );
+	cvShowImage("depth_img", depth_img);
+	
+	cvWaitKey(0);
+	*/
+	
 	width = rgb_img->width;
 	height = rgb_img->height;
 	keypoints = extractor->getKeyPointSet(rgb_img,depth_img);
+	
+	vector<FeatureDescriptor * > words = fi->calibration->words;
+	float * bow = new float[words.size()];
+	for(unsigned int j = 0; j < words.size();j++){bow[j]=0;}
+	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
+		int best_id = 0;
+		float best = 10000000000;
+		for(unsigned int j = 0; j < words.size();j++){
+			float d = keypoints->valid_key_points.at(i)->descriptor->distance(words.at(j));
+			if(d < best){best = d; best_id = j;}
+		}
+		bow[best_id]++;
+	}
+	for(unsigned int i = 0; i < keypoints->invalid_key_points.size();i++){
+		int best_id = 0;
+		float best = 10000000000;
+		for(unsigned int j = 0; j < words.size();j++){
+			float d = keypoints->invalid_key_points.at(i)->descriptor->distance(words.at(j));
+			if(d < best){best = d; best_id = j;}
+		}
+		bow[best_id]++;
+	}
+	//printf("bow = [");for(unsigned int j = 0; j < words.size();j++){printf("%i ",int(bow[j]));}printf("];\n");
+	float bow_div = float(keypoints->invalid_key_points.size()+keypoints->valid_key_points.size());
+	for(unsigned int j = 0; j < words.size();j++){bow[j]/=bow_div;}
+	
+	image_descriptor = new FloatHistogramFeatureDescriptor(bow,words.size());
+	
+	planes = segmenter->segment(rgb_img,depth_img);
+	
+	
 	normal_radius_	= 0.15f;
 	feature_radius_	= 0.15f;
 	//printf("checking distances\n");
