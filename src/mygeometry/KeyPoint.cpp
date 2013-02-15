@@ -15,16 +15,17 @@ KeyPoint::~KeyPoint(){
 	point = 0;
 };
 
-void KeyPoint::print()
-{
-	/*
-	printf("KeyPoint index_number:%i\n",index_number);
-	descriptor->print();
-	point->print();
-	if(valid)	{printf("KeyPoint Valid:true\n");}
-	else 		{printf("KeyPoint Valid:false\n");}
-	printf("KeyPoint color:%i,%i,%i\n", r,g,b);
-	*/
+void KeyPoint::print(){
+	printf("----------------------------------------------\n");
+	for(int i = 0; i < cluster_distance_pairs.size();i++){
+		printf("%i : %f\n",cluster_distance_pairs.at(i).first,cluster_distance_pairs.at(i).second);
+	}
+}
+
+bool compare_v(pair <int , float > a, pair <int , float > b) {return (a.second < b.second);}
+
+void KeyPoint::sortDistances(){
+	std::sort (cluster_distance_pairs.begin(), cluster_distance_pairs.end(),compare_v);
 }
 
 /*

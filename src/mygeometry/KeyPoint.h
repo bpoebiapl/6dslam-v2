@@ -17,10 +17,11 @@ class KeyPoint {
 		int b;
 		float stabilety;
 		vector<float> cluster_distances;
-
+		vector< pair <int , float > > cluster_distance_pairs;
 		KeyPoint();
 		~KeyPoint();
 		void print();
+		void sortDistances();
 };
 
 

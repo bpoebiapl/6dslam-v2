@@ -65,7 +65,7 @@ void Map3D::addFrame(RGBDFrame * frame)
 	for(int i = frames.size() - 1; i >= 0 && nr_fails < 10; i--){
 		Transformation * trans = matcher->getTransformation(frame, frames.at(i));
 		printf("%i <--> %i: match ->%f\n",frame->id,frames.at(i)->id,trans->weight);
-		if(trans->weight >= 8)
+		if(trans->weight >= 35)
 		{
 			frame->transformations.push_back(trans);
 			frames.at(i)->transformations.push_back(trans);

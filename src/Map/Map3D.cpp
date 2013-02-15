@@ -11,4 +11,5 @@ void Map3D::addTransformation(Transformation * transformation){}
 void Map3D::estimate(){}
 void Map3D::setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view){viewer = view;}
 void Map3D::visualize(){}
+void Map3D::showTuning(){}
 

@@ -19,7 +19,12 @@
 
 using namespace std;
 
-Map3Dbow::Map3Dbow(){}
+Map3Dbow::Map3Dbow(string file_path){
+	path=file_path;
+}
+Map3Dbow::Map3Dbow(){
+	path="output/bowTest2_%i.feature.surf";
+}
 Map3Dbow::~Map3Dbow(){}
 void Map3Dbow::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor,segmentation));}
 void Map3Dbow::addFrame(RGBDFrame * frame){
@@ -35,14 +40,14 @@ void Map3Dbow::estimate(){
 		for(int j = 0; j < current->valid_key_points.size(); j++){descriptors.push_back(current->valid_key_points.at(j)->descriptor);}
 		for(int j = 0; j < current->invalid_key_points.size(); j++){descriptors.push_back(current->invalid_key_points.at(j)->descriptor);}	
 	}
-	vector<FeatureDescriptor * > * bags = kmeans(descriptors, 2, 20, 300);
+	vector<FeatureDescriptor * > * bags = kmeans(descriptors, 1, 10, 500);
 	
 	for(int i = 0; i < bags->size(); i++){
-		char buff[50];
-		sprintf(buff,"output/bowTest_%i.feature.ORB",i);
+		char buff[250];
+		sprintf(buff,path.c_str(),i);
 		bags->at(i)->store(string(buff));
 		bags->at(i)->print();
-		new OrbFeatureDescriptor(string(buff));
+		//new OrbFeatureDescriptor(string(buff));
 	}
 	printf("estimate done\n");
 }

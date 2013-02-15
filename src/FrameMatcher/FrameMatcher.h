@@ -36,6 +36,8 @@ class FrameMatcher
 
 
 #include "AICK.h"
+#include "BowAICK.h"
+#include "AICKv2.h"
 #include "BasicGIcpMatcher.h"
 #include "BasicIcpMatcher.h"
 #include "dnet.h"
@@ -43,5 +45,10 @@ class FrameMatcher
 #include "RansacPCLCopyMatcher.h"
 #include "RansacPCLCopySlowMatcher.h"
 #include "SACIAMatcher.h"
+#include "MultiLayerMatcher.h"
+#include "MultiFilterMatcher.h"
+#include "FilterMatcher.h"
+#include "DistanceNetMatcher.h"
+#include "DistanceNetMatcherv2.h"
 
 #endif

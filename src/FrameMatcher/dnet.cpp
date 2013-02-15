@@ -12,7 +12,7 @@ const bool debugg_DNET = true;
 
 Transformation * DNET::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
-	int max_points = 100;
+	int max_points = 300;
 	float max_feature = 0.10;
 	float max_dist = 0.01;
 	printf("dnet...\n");
@@ -73,9 +73,9 @@ Transformation * DNET::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 		}
 		
 		cvNamedWindow("combined image", CV_WINDOW_AUTOSIZE );
-		cvShowImage("combined image", img_combine);
+		//cvShowImage("combined image", img_combine);
 		
-		cvWaitKey(0);
+		//cvWaitKey(0);
 		cvReleaseImage( &rgb_img_src );
 		cvReleaseImage( &rgb_img_dst );
 
@@ -176,27 +176,42 @@ Transformation * DNET::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 				best_id = j;
 			}
 		}
-		if(best >= 20){
-			src_matches[i] = best_id;
-			printf("%i\n",best);//src_matches[i]);
-		}else{src_matches[i] = -1;}
+		if(best >= 20){src_matches[i] = best_id;}
+		else{src_matches[i] = -1;}
 	}
 	
+	int * dst_matches = new int[dst_nr_points];
+	for(int i = 0; i < dst_nr_points; i++){
+		int best = 0;
+		int best_id = 0;
+		for(int j = 0; j < src_nr_points; j++){
+			if(counter[j][i]>best){
+				best = counter[j][i];
+				best_id = j;
+			}
+		}
+		if(best >= 20){dst_matches[i] = best_id;}
+		else{dst_matches[i] = -1;}
+	}
+	
+	Transformation * transformation = new Transformation();
+	pcl::TransformationFromCorrespondences tfc;
 	for(int i = 0; i < src_nr_points; i++){
-		if(!(src_matches[i] == -1)){
+		if(!(src_matches[i] == -1) && (dst_matches[src_matches[i]] == i)){
+			tfc.add(src_keypoints.at(i)->point->pos, dst_keypoints.at(src_matches[i])->point->pos);
+			transformation->weight++;
 			//printf("%i\n",src_matches[i]);
 			cvLine(img_combine,cvPoint(dst_keypoints.at(src_matches[i])->point->w+width,dst_keypoints.at(src_matches[i])->point->h),cvPoint(src_keypoints.at(i)->point->w,src_keypoints.at(i)->point->h),cvScalar(0,255,0, 0),1,8,0);
 		}
 	}
-	cvShowImage("combined image", img_combine);
-	cvWaitKey(0);
+	if(debugg_DNET){
+		cvShowImage("combined image", img_combine);
+		cvWaitKey(0);
+	}
 
-	exit(0);
-	Transformation * transformation = new Transformation();
-	transformation->transformationMatrix = Eigen::Matrix4f::Identity();;
+	transformation->transformationMatrix = tfc.getTransformation().matrix();
 	transformation->src = src;
 	transformation->dst = dst;
-	transformation->weight = 100;
 
 	if(debugg_DNET){printf("done\n");cvReleaseImage( &img_combine );}
 	

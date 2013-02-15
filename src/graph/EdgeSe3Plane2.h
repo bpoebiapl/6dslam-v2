@@ -26,62 +26,47 @@ namespace g2o {
     {
 		const VertexSE3* v1 = dynamic_cast<const VertexSE3*>(_vertices[0]);
 		const VertexPlane* v2 = dynamic_cast<const VertexPlane*>(_vertices[1]);
-		Matrix4d mat = v1->estimate().to_homogenious_matrix().inverse();
+		Matrix4d mat2 = v1->estimate().to_homogenious_matrix();
+		Matrix4d mat = mat2.inverse();
+		
+		Vector4d pos = Vector4d(0,0,0,1);
+		
 		double rx = v2->rx;
 		double ry = v2->ry;
 		double rz = v2->rz;
+		
+		double px = v2->px;
+		double py = v2->py;
+		double pz = v2->pz;
+		
+		double x = mat2(0,3);
+		double y = mat2(1,3);
+		double z = mat2(2,3);
 		
 		double tmp_nx = rx*mat(0,0) + ry*mat(0,1) + rz*mat(0,2);
 		double tmp_ny = rx*mat(1,0) + ry*mat(1,1) + rz*mat(1,2);
 		double tmp_nz = rx*mat(2,0) + ry*mat(2,1) + rz*mat(2,2);
 		
-		//printf("%i: [%.5f,%.5f,%.5f] -> [%.5f,%.5f,%.5f]\n",v2->id,nx,ny,nz,tmp_nx,tmp_ny,tmp_nz);
+		double tmp_d = rx*(px-x) + ry*(py-y) + rz*(pz-z);
 		
-		_error[0] = fabs(tmp_nx-nx);
-		_error[1] = fabs(tmp_ny-ny);
-		_error[2] = fabs(tmp_nz-nz);
-		_error[3] = 0;
+		//if((v2->id == 0) && (rand()%100 == 0)){printf("%i [%.5f,%.5f]\n",v2->id,tmp_d,d);}
 		
-    }
-    virtual void setMeasurement(Plane * p){
-    	nx = p->normal_x;
-    	ny = p->normal_y;
-    	nz = p->normal_z;
-    	d = p->distance(0,0,0);
-    }
-/*
-    virtual void setMeasurement(const SE3Quat& m){
-      _measurement = m;
-      _inverseMeasurement = m.inverse();
+		_error[0] = 10000.0f*fabs(tmp_nx-nx);
+		_error[1] = 10000.0f*fabs(tmp_ny-ny);
+		_error[2] = 10000.0f*fabs(tmp_nz-nz);
+		_error[3] = 1*fabs(tmp_d-d);
     }
 
-    virtual bool setMeasurementData(const double* d){
-      Vector7d v;
-      v.setZero();
-      for (int i=0; i<6; i++)
-	v[i]=d[i];
-      _measurement.fromVector(v);
-      _inverseMeasurement = _measurement.inverse();
-      return true;
-    }
-
-    virtual bool getMeasurementData(double* d) const{
-      Vector7d v=_measurement.toVector();
-      for (int i=0; i<7; i++)
-	d[i]=v[i];
-      return true;
-    }
-    
-    virtual int measurementDimension() const {return 7;}
-*/
-    // virtual bool setMeasurementFromState() ;
-
+	void setMeasurement(Plane * p){
+		nx = p->normal_x;
+		ny = p->normal_y;
+		nz = p->normal_z;
+		d = p->distance(0,0,0);
+	}
+	
     virtual bool read(std::istream& is);
     virtual bool write(std::ostream& os) const;
-
-    // virtual double initialEstimatePossible(const OptimizableGraph::VertexSet& , OptimizableGraph::Vertex* ) { return 1.;}
-    // virtual void initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to);
 };
-} // end namespace
+}
 
 #endif

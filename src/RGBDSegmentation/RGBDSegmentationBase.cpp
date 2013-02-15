@@ -25,6 +25,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
+	vector<Plane * > * planes = new vector<Plane * >();
 	
 	float d_scaleing	= calibration->ds/calibration->scale;
 	float centerX		= calibration->cx;
@@ -82,7 +83,8 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 			edge[i][j] = float(gw_edge*gw_edge+gh_edge*gh_edge)*gray_mul + (zw_edge*zw_edge+zh_edge*zh_edge)*0.01;
 		}
 	}
-	/*
+
+
 	int current_todo = 0;
 	int max_todo = 0;
 	int * w_todo = new int[width*height];
@@ -91,62 +93,103 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	vector<vector<int > * > * segs_h = new vector<vector<int > * >();
 	
 	int current_id = 0;
-	for(int i = 0; i < width; i++){
-		for(int j = 0; j < height; j++){
-			if(!edge[i][j] && segment_id[i][j] == -1){
-				vector<int > * seg_w = new vector<int >();
-				vector<int > * seg_h = new vector<int >();
-				segment_id[i][j] = current_id;
-				w_todo[max_todo] = i;
-				h_todo[max_todo] = j;
-				max_todo++;
-				
-				while(current_todo < max_todo){
-					int w = w_todo[current_todo];
-					int h = h_todo[current_todo];
-					seg_w->push_back(w);
-					seg_h->push_back(h);
-					//printf("w,h:%i %i\n",w,h);
-					current_todo++;
-					
-					if(w > 0 && !edge[w-1][h] && segment_id[w-1][h] == -1){
-						w_todo[max_todo] = w-1;
-						h_todo[max_todo] = h;
-						segment_id[w-1][h] = current_id;
-						max_todo++;
+	int step = 5;
+	for(float scale = 256; scale >= 4; scale /= 2){
+		int size = step*scale;
+		for(int i = int(step*scale); i < width-int(step*scale); i+=int(step*scale)){
+			for(int j = int(step*scale); j < height-int(step*scale); j+=int(step*scale)){
+				vector<float > * s_x = new vector<float >();
+				vector<float > * s_y = new vector<float >();
+				vector<float > * s_z = new vector<float >();
+			
+				for(int ii = -step; ii <= step; ii++){
+					for(int jj = -step; jj <= step; jj++){
+						int iiw = i+ii*int(scale);
+						int jjh = j+jj*int(scale);
+						float z_tmp = z[iiw][jjh];
+						if(z_tmp > 0.1f){
+							s_x->push_back(x[iiw][jjh]);
+							s_y->push_back(y[iiw][jjh]);
+							s_z->push_back(z_tmp);
+						}
 					}
-					
-					if(h > 0 && !edge[w][h-1] && segment_id[w][h-1] == -1){
-						w_todo[max_todo] = w;
-						h_todo[max_todo] = h-1;
-						segment_id[w][h-1] = current_id;
-						max_todo++;
-					}
-					
-					if(w+1 < width && !edge[w+1][h] && segment_id[w+1][h] == -1){
-						w_todo[max_todo] = w+1;
-						h_todo[max_todo] = h;
-						segment_id[w+1][h] = current_id;
-						max_todo++;
-					}
-					
-					if(h+1 < height && !edge[w][h+1] && segment_id[w][h+1] == -1){
-						w_todo[max_todo] = w;
-						h_todo[max_todo] = h+1;
-						segment_id[w][h+1] = current_id;
-						max_todo++;
-					}
-						
 				}
-				max_todo = 0;
-				current_todo = 0;
-				segs_w->push_back(seg_w);
-				segs_h->push_back(seg_h);
-				current_id++;
+			
+				Plane * pl = new Plane(s_x,s_y,s_z,0,0);
+				int c = s_x->size();
+				delete s_x;
+				delete s_y;
+				delete s_z;
+
+				if(pl->weight < 0.00001 && (c * 3 > step*step)){
+					
+					printf("pl->weight: %f\n",pl->weight); 
+					for(int iter = 0; iter < 7; iter++){
+						float normal_x = pl->normal_x;
+						float normal_y = pl->normal_y;
+						float normal_z = pl->normal_z;
+						float point_x = pl->point_x;
+						float point_y = pl->point_y;
+						float point_z = pl->point_z;
+						
+						delete pl;
+						s_x = new vector<float >();
+						s_y = new vector<float >();
+						s_z = new vector<float >();
+						int counter = 0;
+						for(int ii = 0; ii < width; ii++){
+							for(int jj = 0; jj < height; jj++){
+								if(z[ii][jj] != 0 && fabs(normal_x*(point_x-x[ii][jj]) + normal_y*(point_y-y[ii][jj]) + normal_z*(point_z-z[ii][jj])) < 0.005){
+									s_x->push_back(x[ii][jj]);
+									s_y->push_back(y[ii][jj]);
+									s_z->push_back(z[ii][jj]);
+									counter++;
+								}
+							}
+						}
+						pl = new Plane(s_x,s_y,s_z,0,0);
+						delete s_x;
+						delete s_y;
+						delete s_z;
+					}
+					
+					/*
+					IplImage * img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
+					cvCopy( rgb_img, img_clone, NULL );
+					cvRectangle(img_clone,cvPoint(i-size, j-size),cvPoint(i+size, j+size),cvScalar(255, 0, 0, 0),1, 8, 0);
+					char * data 			= (char *)(img_clone->imageData);
+					*/
+					float normal_x = pl->normal_x;
+					float normal_y = pl->normal_y;
+					float normal_z = pl->normal_z;
+					float point_x = pl->point_x;
+					float point_y = pl->point_y;
+					float point_z = pl->point_z;
+					for(int ii = 0; ii < width; ii++){
+						for(int jj = 0; jj < height; jj++){
+							if(z[ii][jj] != 0 && fabs(normal_x*(point_x-x[ii][jj]) + normal_y*(point_y-y[ii][jj]) + normal_z*(point_z-z[ii][jj])) < 0.015){
+								z[ii][jj] = 0;
+								/*
+								data[(jj * width + ii)*3+0] = 255;
+								data[(jj * width + ii)*3+1] = 0;
+								data[(jj * width + ii)*3+2] = 255;
+								*/
+							}
+						}
+					}
+					/*
+					cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+					cvShowImage("segments", img_clone);
+					cvWaitKey(0);
+					cvReleaseImage( &img_clone );
+					*/
+					delete pl;
+					
+				}
 			}
 		}
 	}
-	
+/*	
 	
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
@@ -182,10 +225,11 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	cvWaitKey(0);
 	//cvReleaseImage( &img );
 	*/
+/*
 	gettimeofday(&start, NULL);
 	int step = 5;
 	int size = 2*height;
-	vector<Plane * > * planes = new vector<Plane * >();
+	
 	while(true){
 		float best_score = 0;
 		float best_score_scale = 0;
@@ -245,17 +289,17 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 					}
 				}
 				if(score > best_score){
-					Plane * p = new Plane(seg_x,seg_y,seg_z);
+					Plane * p = new Plane(seg_x,seg_y,seg_z,0,0);
 					float score_scale = score / (p->weight+0.000000001);
 					if(best_score_scale < score_scale){
 						best_score = score;
 						best_score_scale = score_scale;
 						best_plane = p;
-						/*
-						cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
-						cvShowImage("segments", img_clone);
-						cvWaitKey(0);
-						*/
+						
+						//cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+						//cvShowImage("segments", img_clone);
+						//cvWaitKey(0);
+						
 					
 					}else{delete p;}
 				}else{
@@ -286,12 +330,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 		for(int i = step; i <= width-step; i+=step){
 			for(int j = step; j <= height-step; j+=step){
 				if(fabs(normal_x*(point_x-x[i][j]) + normal_y*(point_y-y[i][j]) + normal_z*(point_z-z[i][j])) < 0.01){
-					/*
-					int ind = width*j+i;
-					cdata[3*ind+0] = 255;
-					cdata[3*ind+1] = 0;
-					cdata[3*ind+2] = 255;
-					*/
+
 					s_x->push_back(x[i][j]);
 					s_y->push_back(y[i][j]);
 					s_z->push_back(z[i][j]);
@@ -300,7 +339,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 				}
 			}
 		}
-		Plane * best_plane_update = new Plane(s_x,s_y,s_z);
+		Plane * best_plane_update = new Plane(s_x,s_y,s_z,0,0);
 		delete s_x;
 		delete s_y;
 		delete s_z;
@@ -335,6 +374,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 		}
 
 	}
+*/
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	printf("Segment cost: %f\n",time);

@@ -16,6 +16,10 @@ class VertexPlane : public BaseVertex<6, SE3Quat>
   	float ry;
   	float rz;
   	
+  	float px;
+  	float py;
+  	float pz;
+  	
   	float d;
   	int id;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -60,6 +64,12 @@ class VertexPlane : public BaseVertex<6, SE3Quat>
 
     virtual void oplus(double* update)
     {
+    	/*
+    	px += update[3];
+		py += update[4];
+		pz += update[5];
+		d 	= rx*px + ry*py + rz*pz;
+		*/
 		rx += update[0];
 		ry += update[1];
 		rz += update[2];
@@ -70,6 +80,10 @@ class VertexPlane : public BaseVertex<6, SE3Quat>
 		rz /= div;
 		
 		d += update[3];
+		px = rx*d;
+		py = ry*d;
+		pz = rz*d;
+	
     }
 };
 }

@@ -21,6 +21,8 @@ class Map3Dbow: public Map3D
 {
 	public:
 
+	string path;
+	Map3Dbow(string file_path);
 	Map3Dbow();
 	~Map3Dbow(); 
 	

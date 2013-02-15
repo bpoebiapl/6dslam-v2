@@ -47,7 +47,7 @@ KeyPointSet * SurfExtractor::getKeyPointSet(pcl::PointCloud<pcl::PointXYZRGBNorm
 
 	IpVec ipts;
 	surfDetDes(rgb_img, ipts, upright, octaves, intervals, init_sample, thres);
-	printf(" %i\n",(int)ipts.size());
+	//printf(" %i\n",(int)ipts.size());
 	
 	KeyPointSet * keypoints = new KeyPointSet();
 	for(int i = 0; i < (int)ipts.size(); i++)
@@ -102,7 +102,7 @@ KeyPointSet * SurfExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_
 
 	IpVec ipts;
 	surfDetDes(rgb_img, ipts, upright, octaves, intervals, init_sample, thres);
-	printf("OpenSURF found: %i interest points\n",(int)ipts.size());
+	//printf("OpenSURF found: %i interest points\n",(int)ipts.size());
 	
 	KeyPointSet * keypoints = new KeyPointSet();
 	for(int i = 0; i < (int)ipts.size(); i++)
@@ -158,7 +158,7 @@ KeyPointSet * SurfExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_
 			//cvCircle(rgb_img, cvPoint(w, h), 5, cvScalar(0, 0, 255, 0), 2, 8, 0);
 		}
 	}
-	printf("pre sort\n");
+	//printf("pre sort\n");
 	sort(keypoints->valid_key_points.begin(),keypoints->valid_key_points.end(),comparison_surf);
 	sort(keypoints->invalid_key_points.begin(),keypoints->invalid_key_points.end(),comparison_surf);
 	//cvReleaseImage( &rgb_img );

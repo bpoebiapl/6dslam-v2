@@ -39,8 +39,14 @@ Plane::Plane(std::vector<Point *> * points)
 	setup(points);
 }
 
-Plane::Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz)
+Plane::Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz, std::vector<int> * pw, std::vector<int> * ph)
 {
+	x_vec = px;
+	y_vec = py;
+	z_vec = pz;
+	w_vec = pw;
+	h_vec = ph;
+	
 	color_histogram = 0;
 	id = plane_counter++;
 	use_boundaries = false;

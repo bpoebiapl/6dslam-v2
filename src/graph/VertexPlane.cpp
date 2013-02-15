@@ -10,6 +10,9 @@ int VertexPlaneCounter = 0;
 		ry=0;
 		rz=1;
 		d=0;
+		px = 0;
+		py = 0;
+		pz = 0;
 		id=VertexPlaneCounter++;
 	}
 

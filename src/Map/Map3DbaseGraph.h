@@ -32,6 +32,9 @@ class Map3DbaseGraph: public Map3D
 {
 	public:
 
+	int max_backing;
+	float w_limit;
+
 	Map3DbaseGraph();
 	~Map3DbaseGraph(); 
 	
