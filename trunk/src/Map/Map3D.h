@@ -21,6 +21,7 @@ class Map3D
 {
 	public:
 	FrameMatcher * matcher;
+	FrameMatcher * loopclosure_matcher;
 	FeatureExtractor * extractor;
 	RGBDSegmentation * segmentation;
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
@@ -28,6 +29,7 @@ class Map3D
 	vector<RGBDFrame *> frames;
 	vector<Transformation *> transformations;
 	vector<Matrix4f> poses;
+	bool show;
 	
 	Map3D();
 	virtual ~Map3D(); 
@@ -39,5 +41,15 @@ class Map3D
 	virtual void estimate();
 	virtual void setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view);
 	virtual void visualize();
+	virtual void showTuning();
 };
+
+#include "Map3Dbase.h"
+#include "Map3Dbow.h"
+#include "Map3DbaseGraph.h"
+#include "Map3DPlanesGraph.h"
+#include "Map3DPlanesGraphv2.h"
+#include "Map3DPlanesGraphv3.h"
+#include "Map3DPlanesGraphv4.h"
+
 #endif

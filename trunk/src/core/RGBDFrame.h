@@ -69,6 +69,8 @@ class RGBDFrame
 	
 	vector<Plane *> * planes;
 	
+	vector<float *> validation_points;
+	
 	Eigen::Matrix4f	matrix;
 	g2o::VertexSE3 * g2oVertex;
 	bool locked;

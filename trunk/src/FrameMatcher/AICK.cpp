@@ -24,7 +24,10 @@ float AICK::getAlpha(int iteration){return 1-pow(shrinking,float(iteration));}
 
 Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
-	//printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);
+	printf("start AICK...\n");
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);
 	if(debugg_AICK){printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);}
 	IplImage* img_combine;
 	int width;
@@ -102,7 +105,6 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	//if(debugg_AICK){printf("src_keypoints.size() = %i, dst_keypoints.size() = %i\n",int(src_keypoints.size()),int(dst_keypoints.size()));}
 	int src_nr_points = src_keypoints.size();
 	int dst_nr_points = dst_keypoints.size();
-
 	float ** surf_distances = new float*[src_nr_points];
 	float ** match_distances = new float*[src_nr_points];
 	for(int i = 0; i < src_nr_points;i++)
@@ -152,7 +154,6 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	transformation->src = src;
 	transformation->dst = dst;
 	transformation->weight = 100;
-
 	for(int iter = 0; iter < nr_iter; iter++)
 	{
 		float alpha = getAlpha(iter);
@@ -212,7 +213,6 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 				}
 			}
 		}
-		
 		pcl::TransformationFromCorrespondences tfc;
 		//int nr_matches = 0;
 		float threshold = distance_threshold*alpha + (1 - alpha)*feature_threshold;
@@ -228,7 +228,7 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 		{
 			int j = src_matches[i];
 			
-			if(match_distances[i][j] < threshold){
+			if(match_distances[i][j] < threshold && j != -1){
 				//if(src->id == 793){printf("j = %i\n",j);}
 				KeyPoint * src_kp = src_keypoints.at(i);
 				KeyPoint * dst_kp = dst_keypoints.at(j);
@@ -239,24 +239,27 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 				}
 				nr_matches++;
 				tfc.add(src_kp->point->pos, dst_kp->point->pos);
-				transformation->weight++;
+				
+				if(iter == nr_iter-1){
+					transformation->weight++;
+					transformation->matches.push_back(make_pair (src_kp, dst_kp));
+				}
 			}
 		}		
 		//printf("nr_matches: %i\n",nr_matches);
 		if(debugg_AICK ){
-			if(iter == nr_iter-1){
+			if(iter == nr_iter-1)
+			{
 				cvShowImage("combined image", img_combine_clone);
 				cvWaitKey(0);
 			}
 			cvReleaseImage( &img_combine_clone);
 		}
 		
-		
 		transformationMat = tfc.getTransformation().matrix();
 		transformation->transformationMatrix = transformationMat;
 	}
 	if(debugg_AICK){printf("done\n");cvReleaseImage( &img_combine );}
-
 	for(int i = 0; i < src_nr_points;i++)
 	{
 		delete[] surf_distances[i];
@@ -291,8 +294,8 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 		}
 	}
 	float poss_diff = sqrt(transformation->transformationMatrix(0,3)*transformation->transformationMatrix(0,3)+transformation->transformationMatrix(1,3)*transformation->transformationMatrix(1,3)+transformation->transformationMatrix(2,3)*transformation->transformationMatrix(2,3));
-	//printf("weight: %f diff: %f poss_diff: %f\n",transformation->weight,diff,poss_diff);
-	//if(diff > 0.1f || poss_diff > 0.1f || transformation->weight < 15 ){printf("------>weight: %f diff: %f poss_diff: %f\n",transformation->weight,diff,poss_diff);transformation->transformationMatrix = Eigen::Matrix4f::Identity();}
-	//else{printf("weight: %f diff: %f poss_diff: %f\n",transformation->weight,diff,poss_diff);}
+	gettimeofday(&end, NULL);
+	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	printf("AICK cost: %f\n",time);
 	return transformation;
 }

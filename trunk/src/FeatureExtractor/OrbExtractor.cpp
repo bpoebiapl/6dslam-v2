@@ -19,7 +19,7 @@ KeyPointSet * OrbExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_i
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 	
-	cv::ORB orb = cv::ORB(nr_features,1.2f, 8, 5, 0,2, cv::ORB::HARRIS_SCORE, 31);
+	cv::ORB orb = cv::ORB(nr_features,1.2f, 8, 3, 0,2, cv::ORB::HARRIS_SCORE, 31);
 	cv::Mat img(rgb_img);
 	cv::Mat d_img(depth_img);
 	
@@ -97,7 +97,7 @@ KeyPointSet * OrbExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_i
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	//if(keypoints->invalid_key_points.size() < 10){printf("too few keypoints\n");exit(0);}
-	printf("Orb cost: %f\n",time);
+	//printf("Orb cost: %f\n",time);
 	
 	//cv::Mat output_img;
 	//drawKeypoints(img, kp1, output_img);

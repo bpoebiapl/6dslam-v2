@@ -1,4 +1,9 @@
 #include "SurfFeatureDescriptor64.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
 SurfFeatureDescriptor64::SurfFeatureDescriptor64(float * feature_descriptor){
 	descriptor = feature_descriptor;
 	descriptor_length = 64;
@@ -28,10 +33,66 @@ SurfFeatureDescriptor64::~SurfFeatureDescriptor64(){
 	laplacian = -10;
 };
 
-void SurfFeatureDescriptor64::print(){}
+SurfFeatureDescriptor64::SurfFeatureDescriptor64(string path){
+	type = surf64;
+	descriptor_length = 64;
+	cout<< "loading surf64: " << path << endl;
+	ifstream file (path.c_str());
+	if (file.is_open()){
+		file.seekg(0,ifstream::end);
+		long size=file.tellg();
+		char * buffer_char 		= new char [size];
+		int * buffer_int 		= (int *) buffer_char;
+		file.seekg(0);
+		file.read (buffer_char,size);
+		file.close();
+		descriptor = (float *) buffer_char;
+		laplacian = buffer_int[64];
+	}else{cout<<"File not opened"<<endl;}
+	//print();
+};
+
+void SurfFeatureDescriptor64::print(){
+	printf("laplacian: %i\n",laplacian);
+	//cout<<"descriptor: ";
+	//for(int i = 0; i < 64; i++){cout << descriptor[i] << " ";}
+	//cout<<endl;
+}
 
 inline SurfFeatureDescriptor64 * SurfFeatureDescriptor64::clone(){
-	return new SurfFeatureDescriptor64();
+	SurfFeatureDescriptor64 * surf = new SurfFeatureDescriptor64();
+	for(int i = 0; i < 64; i++){surf->descriptor[i] = descriptor[i];}
+	surf->laplacian = laplacian;
+	//surf->print();
+	return surf;
+}
+
+inline void SurfFeatureDescriptor64::store(string path){
+	cout<<"storing surf\n";
+	//for(int i = 0; i < 32; i++){orb->descriptor[i] = descriptor[i];}
+	ifstream file (path.c_str());
+	if (!file.is_open()){
+		long size 				= sizeof(float)*(64)+sizeof(int);
+		char * buffer_char 		= new char[size];
+		float * buffer_float 	= (float *)buffer_char;
+		int * buffer_int 		= (int *)buffer_char;
+		for(int i = 0; i < 64; i++){buffer_float[i] = descriptor[i];}
+		buffer_int[64] = laplacian;
+		ofstream outfile (path.c_str(),ofstream::binary);
+		outfile.write ((char *)buffer_char,size);
+		outfile.close();
+		delete buffer_char;
+	}else{file.close();}
+}
+
+inline void SurfFeatureDescriptor64::update(vector<FeatureDescriptor * > * input){
+	//printf("input->size() = %i\n",input->size());
+	for(int j = 0; j < 64; j++){descriptor[j] = 0;} 
+	for(int i = 0; i < input->size(); i++){
+		SurfFeatureDescriptor64 * current = (SurfFeatureDescriptor64 *)input->at(i);
+		for(int j = 0; j < 64; j++){descriptor[j] += current->descriptor[j];} 
+	}
+	for(int j = 0; j < 64; j++){descriptor[j] /= float(input->size());};
 }
 
 double SurfFeatureDescriptor64::distance(SurfFeatureDescriptor64 * other_descriptor)

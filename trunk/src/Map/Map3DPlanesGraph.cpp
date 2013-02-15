@@ -27,6 +27,7 @@
 #include "VertexPlane.cpp"
 #include "EdgeSe3Plane.cpp"
 #include "EdgeSe3Plane2.cpp"
+#include "EdgePlane.cpp"
 
 bool comparison_Map3DPlanesGraph (Transformation * i,Transformation * j) {
 	if(i->src == j->src){return (i->weight<j->weight);}
@@ -268,6 +269,33 @@ void Map3DPlanesGraph::estimate(){
 		}
 	}
 	
+	for(unsigned int i  = 0; i < mergedPlanes.size(); i++){
+		for(unsigned int j  = 0; j < mergedPlanes.at(i)->data.size(); j++){
+			for(unsigned int ii  = i+1; ii < mergedPlanes.size(); ii++){
+				for(unsigned int jj  = 0; jj < mergedPlanes.at(ii)->data.size(); jj++){
+					if(mergedPlanes.at(i)->data.at(j)->frame == mergedPlanes.at(ii)->data.at(jj)->frame){
+						Plane * pi = mergedPlanes.at(i)->data.at(j)->frame->planes->at(mergedPlanes.at(i)->data.at(j)->plane_index);
+						Plane * pii = mergedPlanes.at(ii)->data.at(jj)->frame->planes->at(mergedPlanes.at(ii)->data.at(jj)->plane_index);
+						//printf("angle: %f\n",pi->angle(pii));
+						g2o::EdgePlane * edgePlane = new g2o::EdgePlane();	
+						
+						edgePlane->vertices()[0] = graphoptimizer.vertex(200000+i);
+						edgePlane->vertices()[1] = graphoptimizer.vertex(200000+j);
+						
+						Eigen::Matrix<double, 1, 1, 0, 1, 1> mat;
+						mat.setIdentity(1,1);
+						edgePlane->information() = mat;
+						
+						edgePlane->setMeasurement(pi->angle(pii));
+						
+						//graphoptimizer.addEdge(edgePlane);
+						
+					}
+				}
+			}
+		}
+	}
+	
 	graphoptimizer.initializeOptimization();
 	graphoptimizer.setVerbose(true);
 	graphoptimizer.optimize(50);
@@ -314,6 +342,15 @@ void Map3DPlanesGraph::visualize(){
 	}
 	
 	//viewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
+	//for(int i = 0;; i++);{
+	g2o::VertexPlane * vertex = (g2o::VertexPlane*)(graphoptimizer.vertex(200000+0));
+	pcl::ModelCoefficients coeffs;
+	coeffs.values.push_back (vertex->rx);
+	coeffs.values.push_back (vertex->ry);
+	coeffs.values.push_back (vertex->rz);
+	coeffs.values.push_back (vertex->d);
+	viewer->addPlane (coeffs, "plane");
+	
 	while(true){
 		viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
 		pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);

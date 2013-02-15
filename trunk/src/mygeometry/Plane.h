@@ -34,6 +34,12 @@ class Plane
 	std::vector<int> p_w;
 	float a,b,c,d;
 	
+	std::vector<float> * x_vec;
+	std::vector<float> * y_vec;
+	std::vector<float> * z_vec;
+	std::vector<int> * w_vec;
+	std::vector<int> * h_vec;
+	
 
 
 	FeatureDescriptor * color_histogram;
@@ -42,7 +48,7 @@ class Plane
 	Plane(pcl::PointXYZRGBNormal * pa, pcl::PointXYZRGBNormal * pb,pcl::PointXYZRGBNormal * pc);
 
 	Plane(std::vector<Point *> * points);
-	Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz);
+	Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float> * pz, std::vector<int> * pw, std::vector<int> * ph);
 	Plane(std::vector<pcl::PointXYZRGBNormal *> * points);
 	
 	Plane();

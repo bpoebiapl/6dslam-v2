@@ -1,6 +1,26 @@
 #include "Line.h"
 int line_counter = 0;
 
+Line::Line(float x1, float y1, float z1, float x2, float y2, float z2)
+{
+	id = line_counter++;
+	dir_x = x1-x2;
+	dir_y = y2-y2;
+	dir_z = z1-z2;
+	point_x = x1;
+	point_y = y1;
+	point_z = z1;
+	dir[0] = dir_x;
+	dir[1] = dir_y;
+	dir[2] = dir_z;
+	point_a[0] = x1;
+	point_a[1] = y1;
+	point_a[2] = z1;
+	point_b[0] = x2;
+	point_b[1] = y2;
+	point_b[2] = z2;
+}
+
 Line::Line(Point * pa, Point * pb)
 {
 	id = line_counter++;

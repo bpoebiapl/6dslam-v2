@@ -202,7 +202,7 @@ void RGBDFrame::init_filter(){
 	//printf("2:nr xyz: %i\n",tmp_cloud->width*tmp_cloud->height);
 	xyz_ = tmp_cloud;
 	
-	const float voxel_grid_size = 0.12f;
+	const float voxel_grid_size = 0.05f;//12f;
 	pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
 	vox_grid.setInputCloud (tmp_cloud);
 	vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
@@ -214,7 +214,9 @@ void RGBDFrame::init_filter(){
 
 RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegmentation * segmenter)
 {
-
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	
 	bool calculate_pointcloud 			= true;
 	bool calculate_normals 				= false;
 	bool calculate_jointcloudnormals	= false;
@@ -224,22 +226,18 @@ RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegment
 
 
 	id = frame_id_counter++;
+	//printf("id:%i\n",id);
 	input = fi;
 	IplImage* rgb_img 	= cvLoadImage(fi->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 	IplImage* depth_img = cvLoadImage(fi->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 	
-	/*
-	cvNamedWindow("rgb_img", CV_WINDOW_AUTOSIZE );
-	cvShowImage("rgb_img", rgb_img);
-	
-	cvNamedWindow("depth_img", CV_WINDOW_AUTOSIZE );
-	cvShowImage("depth_img", depth_img);
-	
-	cvWaitKey(0);
-	*/
+	//printf("rgb: %s\n",fi->rgb_path.c_str());
+	//printf("depth: %s\n",fi->depth_path.c_str());
+
 	
 	width = rgb_img->width;
 	height = rgb_img->height;
+	
 	keypoints = extractor->getKeyPointSet(rgb_img,depth_img);
 	
 	vector<FeatureDescriptor * > words = fi->calibration->words;
@@ -248,152 +246,91 @@ RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegment
 	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
 		int best_id = 0;
 		float best = 10000000000;
+		KeyPoint * kp = keypoints->valid_key_points.at(i);
 		for(unsigned int j = 0; j < words.size();j++){
-			float d = keypoints->valid_key_points.at(i)->descriptor->distance(words.at(j));
+			float d = kp->descriptor->distance(words.at(j));
+			//printf("kp...\n");
+			//kp->descriptor->print();
+			//printf("words...\n");
+			//words.at(j)->print();
+			//printf("%i %i -> %f\n",i,j,d);
+			kp->cluster_distances.push_back(d);
+			if(d < 0.25){
+				kp->cluster_distance_pairs.push_back(make_pair(j,d));
+			}
 			if(d < best){best = d; best_id = j;}
 		}
 		bow[best_id]++;
+		kp->sortDistances();
+		//kp->print();
 	}
 	for(unsigned int i = 0; i < keypoints->invalid_key_points.size();i++){
 		int best_id = 0;
 		float best = 10000000000;
+		KeyPoint * kp = keypoints->invalid_key_points.at(i);
 		for(unsigned int j = 0; j < words.size();j++){
-			float d = keypoints->invalid_key_points.at(i)->descriptor->distance(words.at(j));
+			float d = kp->descriptor->distance(words.at(j));
+			//kp->cluster_distances.push_back(d);
+			//kp->cluster_distance_pairs.push_back(make_pair(j,d));
 			if(d < best){best = d; best_id = j;}
 		}
 		bow[best_id]++;
+		kp->sortDistances();
+		delete kp;
+		//kp->print();
 	}
-	//printf("bow = [");for(unsigned int j = 0; j < words.size();j++){printf("%i ",int(bow[j]));}printf("];\n");
+
 	float bow_div = float(keypoints->invalid_key_points.size()+keypoints->valid_key_points.size());
 	for(unsigned int j = 0; j < words.size();j++){bow[j]/=bow_div;}
 	
 	image_descriptor = new FloatHistogramFeatureDescriptor(bow,words.size());
 	
 	planes = segmenter->segment(rgb_img,depth_img);
-	
-	
+
 	normal_radius_	= 0.15f;
 	feature_radius_	= 0.15f;
-	//printf("checking distances\n");
-/*	
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	
-	printf("keypoints->valid_key_points.size() = %i\n",keypoints->valid_key_points.size());
-	printf("keypoints->invalid_key_points.size() = %i\n",keypoints->invalid_key_points.size());
-	
-	double ** fd_mat = new double*[keypoints->valid_key_points.size()];
-	double ** pd_mat = new double*[keypoints->valid_key_points.size()];
-	double ** overlap_mat = new double*[keypoints->valid_key_points.size()];
-	
-	bool * taken = new bool[keypoints->valid_key_points.size()];
-	
-	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
-		fd_mat[i] = new double[keypoints->valid_key_points.size()];
-		pd_mat[i] = new double[keypoints->valid_key_points.size()];
-		overlap_mat[i] = new double[keypoints->valid_key_points.size()];
-		taken[i] = false;
-	}
-	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
-		KeyPoint * current = keypoints->valid_key_points.at(i);
-		fd_mat[i][i] = 0;
-		pd_mat[i][i] = 1;
-		for(unsigned int j = i+1; j < keypoints->valid_key_points.size(); j++)
-		{
-			KeyPoint * current2 = keypoints->valid_key_points.at(j);
-			float fd = sqrt(current->descriptor->distance(current2->descriptor));
-			float x_delta = current->point->x - current2->point->x;
-			float y_delta = current->point->y - current2->point->y;
-			float z_delta = current->point->z - current2->point->z;
-			float pd = sqrt(x_delta*x_delta + y_delta*y_delta + z_delta*z_delta);
-			fd_mat[i][j] = fd;
-			fd_mat[j][i] = fd;
-			
-			pd_mat[i][j] = pd;
-			pd_mat[j][i] = pd;
-			overlap_mat[i][j] = -1;
-			if(pd < 0.05){
-				int w1 = current->point->w;
-				int h1 = current->point->h;
-				int w2 = current2->point->w;
-				int h2 = current2->point->h;
-				
-				float steps = 10;
-				float mw = float(w1 - w2)/steps;
-				float mh = float(h1 - h2)/steps;
-				
-				for(int k = 0; k < int(steps); k++){
-					
-				}
-				printf("%i %i <->%i %i -> %f\n",w1,h1,w2,h2,overlap_mat[i][j]);
-			}
-		}
-	}
-	
-	vector<vector<int> * > * components = new vector<vector<int> * >();
-	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
-		if(!taken[i]){
-			taken[i] = true;
-			vector<int> * component = new vector<int>();
-			components->push_back(component);
-			vector<int> todolist;
-			todolist.push_back(i);
-			while(todolist.size() > 0)
-			{
-				int ii = todolist.back();
-				todolist.pop_back();
-				component->push_back(ii);
-				for(unsigned int jj = 0; jj < keypoints->valid_key_points.size();jj++){
-					if(!taken[jj] && pd_mat[ii][jj] < 0.05){
-						taken[jj] = true;
-						todolist.push_back(jj);
-					}
-				}
-			}
-		}
-	}
-	IplImage* rgb_img_clone 	= cvLoadImage(fi->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
-	printf("nr components = %i\n",components->size());
-	for(int i = 0; i < components->size(); i++)
-	{
-		printf("%i: component size = %i\n",i,components->at(i)->size());
-		int r = rand()%256;
-		int g = rand()%256;
-		int b = rand()%256;
-		for(int j = 0; j < components->at(i)->size(); j++)
-		{
-			KeyPoint * kp = keypoints->valid_key_points.at(components->at(i)->at(j));
-			printf("%i:%i -> %i\n",i,j,components->at(i)->at(j));
-			cvCircle(rgb_img_clone, cvPoint(kp->point->w, kp->point->h), 3, cvScalar(b, g, r, 0), 1, 8, 0);
-		}
-	}
-	
-	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
-		delete[] fd_mat[i];
-		delete[] pd_mat[i];
-		delete[] overlap_mat[i];
-	}
-	delete[] taken;
-	delete[] fd_mat;
-	delete[] pd_mat;
-	delete[] overlap_mat;
-	
-	gettimeofday(&end, NULL);
-	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	printf("d time: %f\n",time);
-
-	cvShowImage("rgb_img_clone", rgb_img_clone);
-	cvWaitKey(0);
-	cvReleaseImage( &rgb_img_clone);
-*/
 
 	if(calculate_pointcloud)			{init_pointcloud(rgb_img,depth_img);}
 	if(calculate_segmentation)			{init_segmentation(rgb_img,depth_img);}
 	if(calculate_normals)				{init_normals();}
 	if(calculate_jointcloudnormals)		{init_jointcloudnormals(rgb_img,depth_img);}
 	if(filter_pointcloud)				{init_filter();}
+	
+	float d_scaleing	= input->calibration->ds/input->calibration->scale;
+	float centerX		= input->calibration->cx;
+	float centerY		= input->calibration->cy;
+	float invFocalX	= 1.0f/input->calibration->fx;
+    float invFocalY	= 1.0f/input->calibration->fy;
+    
+	unsigned short * depth_data	= (unsigned short *)depth_img->imageData;
+	int step = 5;
+	for(int w = step; w < width; w+=step){
+		for(int h = step; h < height; h+=step){
+			
+			int ind = 640*h+w;
+			float x = 0;
+			float y = 0;
+			float z = float(depth_data[ind]) * d_scaleing;
+
+			if(z > 0){
+				x = (w - centerX) * z * invFocalX;
+		       	y = (h - centerY) * z * invFocalY;
+		       	float * vp = new float[3];
+		       	vp[0] = x;
+		       	vp[1] = y;
+		       	vp[2] = z;
+		       	validation_points.push_back(vp);
+		       	//printf("%i %i -> %f %f %f\n",w,h,x,y,z);
+			}
+		}
+	}
+	
 	cvReleaseImage( &rgb_img );
-	cvReleaseImage( &depth_img );	
+	cvReleaseImage( &depth_img );
+	
+	gettimeofday(&end, NULL);
+	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	//printf("RGBDFrame total cost: %f\n",time);
 }
 
 
@@ -407,7 +344,7 @@ RGBDFrame::RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud, v
 	FeatureExtractor * fe = new SurfExtractor();
 	keypoints = fe->getKeyPointSet(input_cloud);
 	delete fe;
-	
+	/*
 	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
 		KeyPoint * current = keypoints->valid_key_points.at(i);
 		for(unsigned int j = 0; j < centers->size(); j++)
@@ -423,6 +360,7 @@ RGBDFrame::RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud, v
 			current->cluster_distances.push_back(current->descriptor->distance(centers->at(j)));
 		}
 	}
+	*/
 	//delete kps;
 	//planes = segment(input_cloud);
 

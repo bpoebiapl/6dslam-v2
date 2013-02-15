@@ -21,6 +21,9 @@ void BasicGIcpMatcher::update(){}
 
 Transformation * BasicGIcpMatcher::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	
 	pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
 	icp.setMaximumIterations(nr_iters);
 	icp.setMaxCorrespondenceDistance (correspondenceDistance); 
@@ -39,5 +42,9 @@ Transformation * BasicGIcpMatcher::getTransformation(RGBDFrame * src, RGBDFrame 
 	transformation->dst = dst;
 	transformation->transformationMatrix = icp.getFinalTransformation();
 	transformation->weight = 1/icp.getFitnessScore();
+	
+	gettimeofday(&end, NULL);
+	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	printf("gicp cost: %f\n",time);
 	return transformation;
 }

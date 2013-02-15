@@ -14,8 +14,11 @@ class SurfFeatureDescriptor64 : public FeatureDescriptor
 	SurfFeatureDescriptor64();
 	SurfFeatureDescriptor64(float * feature_descriptor);
 	SurfFeatureDescriptor64(float * feature_descriptor, int feature_laplacian);
+	SurfFeatureDescriptor64(string path);
 	double distance(SurfFeatureDescriptor64 * other_descriptor);
 	void print();
+	void store(string path);
+	void update(vector<FeatureDescriptor * > * input);
 	SurfFeatureDescriptor64 * clone();
 	~SurfFeatureDescriptor64();
 };

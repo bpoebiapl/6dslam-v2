@@ -16,18 +16,24 @@
 //other
 #include <utility>
 #include "RGBDFrame.h"
+
+#include "cv.h"
+#include "highgui.h"
 using namespace std;
 
 class Transformation {
 	public:
 		RGBDFrame * src;
 		RGBDFrame * dst;
+		vector<KeyPoint * > src_keypoints;
+		vector<KeyPoint * > dst_keypoints;
 		vector< pair <KeyPoint * ,KeyPoint * > > matches;
 		Eigen::Matrix4f transformationMatrix;
 		double weight;
 		int level;
 		g2o::EdgeSE3 * g2oEdge;
 		
+		void show();
 		void show(pcl::visualization::CloudViewer * viewer);
 	public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
