@@ -36,6 +36,7 @@ class AICK: public FrameMatcher
 		float stabilety_threshold;
 		int max_points;
 		AICK();
+		AICK(int max_points_);
 		~AICK();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);
 		float getAlpha(int iteration);

@@ -6,17 +6,42 @@ bool comparison_distance (linkData * i,linkData * j) { return (i->distance<j->di
 using namespace std;
 
 DistanceNetMatcherv2::DistanceNetMatcherv2(){
+	prior = true;
 	name = "DistanceNetMatcherv2";
 	max_points = 200;
 	nr_iter = 15;
-	std_dist = 0.02;
+	std_dist = 0.01;
 	lookup_size = 100000;
-	bounds = 2*std_dist;
+	bounds = 1.96*std_dist;
 	probIgnore = 0.001;
 	movementPerFrame = 0.02;
-	p1_rejection = 0.9;
-	p2_rejection = 0.1;
-	likelihood_rejection = 600;
+	p1_rejection = 0.99;
+	p2_rejection = 0.20;
+	likelihood_rejection = 3000;
+	
+	lookup = new float[lookup_size];
+	lookup_step = 2*bounds/float(lookup_size+1);
+	float lookup_size_half = float(lookup_size)/2;
+	float norm = 1/(std_dist*sqrt(2*3.14));
+	for(int i = 0; i < lookup_size; i++){
+		float tmp = (i-lookup_size_half)*lookup_step;
+		lookup[i] = norm*exp(-0.5*(tmp*tmp)/(std_dist*std_dist));
+	}
+}
+
+DistanceNetMatcherv2::DistanceNetMatcherv2(int max_points_, float std_dist_, float bounds_, bool prior_, float movementPerFrame_, float p1_rejection_, float p2_rejection_, float likelihood_rejection_){
+	prior = prior_;
+	name = "DistanceNetMatcherv2";
+	max_points = max_points_;
+	nr_iter = 15;
+	std_dist = std_dist_;
+	lookup_size = 100000;
+	bounds = bounds_;
+	probIgnore = 0.001;
+	movementPerFrame = movementPerFrame_;
+	p1_rejection = p1_rejection_;
+	p2_rejection = p2_rejection_;
+	likelihood_rejection = likelihood_rejection_;
 	
 	lookup = new float[lookup_size];
 	lookup_step = 2*bounds/float(lookup_size+1);
@@ -31,7 +56,7 @@ DistanceNetMatcherv2::DistanceNetMatcherv2(){
 DistanceNetMatcherv2::~DistanceNetMatcherv2(){printf("delete DistanceNetMatcherv2\n");}
 
 using namespace std;
-const bool debugg_DistanceNetMatcherv2 = true;
+const bool debugg_DistanceNetMatcherv2 = false;
 
 Transformation * DistanceNetMatcherv2::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
@@ -115,7 +140,11 @@ Transformation * DistanceNetMatcherv2::getTransformation(RGBDFrame * src, RGBDFr
 			float dst_radius = dst_p->distance(zero_p);
 			float radius_diff = src_radius-dst_radius;
 			float d = src_keypoints.at(i)->descriptor->distance(dst_keypoints.at(j)->descriptor);
-			current_p[i][j] = exp(-0.5*(radius_diff*radius_diff)/movement)/(0.01f+d);//multip;
+			if(prior){
+				current_p[i][j] = exp(-0.5*(radius_diff*radius_diff)/movement)/(0.01f+d);
+			}else{
+				current_p[i][j] = 1;
+			}
 			counter[i][j] = 0;
 		}
 	}
@@ -335,6 +364,10 @@ Transformation * DistanceNetMatcherv2::getTransformation(RGBDFrame * src, RGBDFr
 		float time1 = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 		if(debugg_DistanceNetMatcherv2){printf("net cost: %f\n",time1);}
 	}
+	Transformation * transformation = new Transformation();
+	transformation->transformationMatrix = Eigen::Matrix4f::Identity();
+	transformation->src = src;
+	transformation->dst = dst;
 	
 	for(int i = 0; i < src_nr_points;i++){
 		float best_v = -1;
@@ -354,156 +387,48 @@ Transformation * DistanceNetMatcherv2::getTransformation(RGBDFrame * src, RGBDFr
 				sum += current_p[ii][best_i]*src_likelihood[ii];
 			}
 			float p2 = src_likelihood[i]/sum;
-			if(p2 > p1_rejection){
+
+			if(p2 > p2_rejection){
 				if(debugg_DistanceNetMatcherv2){cvLine(img_combine,cvPoint(src_i->w ,src_i->h),cvPoint(dst_j->w+width,dst_j->h),cvScalar(0, 255, 0, 0),1, 8, 0);}
+				transformation->matches.push_back(make_pair (src_keypoints.at(i), dst_keypoints.at(best_i)));
 			}
 		}
 	}
-			
-	Transformation * transformation = new Transformation();
+
 	if(debugg_DistanceNetMatcherv2){
 		printf("done\n");
 		cvShowImage("combined image", img_combine);
 		cvWaitKey(0);
 		cvReleaseImage( &img_combine);
 	}
-
-	transformation->transformationMatrix = Eigen::Matrix4f::Identity();
-	transformation->src = src;
-	transformation->dst = dst;
-/*
-
-
-	float ** feature_distances = new float*[src_nr_points];
-
-	vector< vector< float > > 	src_possible_matches_dist 	= vector< vector< float > >();
-	vector< vector< int > > 	src_possible_matches_id 	= vector< vector< int > >();
-	vector< vector< float > > 	dst_possible_matches_dist 	= vector< vector< float > >();
-	vector< vector< int > > 	dst_possible_matches_id 	= vector< vector< int > >();
-	for(int i = 0; i < src_nr_points;i++)
-	{
-		src_possible_matches_dist.push_back(vector< float > ());
-		src_possible_matches_id.push_back(vector< int >());
-	}
 	
-	for(int i = 0; i < dst_nr_points;i++)
-	{
-		dst_possible_matches_dist.push_back(vector< float > ());
-		dst_possible_matches_id.push_back(vector< int >());
-	}
-	
-	for(int i = 0; i < src_nr_points;i++)
-	{
-		feature_distances[i] = new float[dst_nr_points];
-		for(int j = 0; j < dst_nr_points;j++)
-		{
-			FeatureDescriptor * descriptorA = src_keypoints.at(i)->descriptor;
-			FeatureDescriptor * descriptorB = dst_keypoints.at(j)->descriptor;
-			feature_distances[i][j] = (descriptorA->distance(descriptorB));
-			if(feature_distances[i][j] < max_feature){
-				src_possible_matches_dist.at(i).push_back(feature_distances[i][j]);
-				src_possible_matches_id.at(i).push_back(j);
-				dst_possible_matches_dist.at(j).push_back(feature_distances[i][j]);
-				dst_possible_matches_id.at(j).push_back(i);
-//cvLine(img_combine,cvPoint(dst_keypoints.at(j)->point->w+width,dst_keypoints.at(j)->point->h),cvPoint(src_keypoints.at(i)->point->w,src_keypoints.at(i)->point->h),cvScalar(0,0,255, 0),1,8,0);
-			}
+	transformation->weight = transformation->matches.size();
+	if(transformation->weight >= 3){
+		pcl::TransformationFromCorrespondences tfc;
+		for(int i = 0; i < transformation->weight; i++){
+			tfc.add(transformation->matches.at(i).first->point->pos, transformation->matches.at(i).second->point->pos);
 		}
+		transformation->transformationMatrix = tfc.getTransformation().matrix();
 	}
-	//cvShowImage("combined image", img_combine);
-	//cvWaitKey(0);
 	
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	int ** counter = new int*[src_nr_points];
-	for(int i = 0; i < src_nr_points; i++){
-		counter[i] = new int[dst_nr_points];
-		for(int j = 0; j < dst_nr_points; j++){
-			counter[i][j] = 0;
-		}
-	}
-	float ** dst_dist = new float*[dst_nr_points]; 
+	//CLEAN
 	for(int i = 0; i < dst_nr_points;i++){
-		dst_dist[i] = new float[dst_nr_points]; 
-		for(int j = i-1; j >= 0;j--){
-			dst_dist[i][j] = dst_dist[j][i] = dst_keypoints.at(i)->point->distance(dst_keypoints.at(j)->point);
-		}
+		for(int j = i-1; j >= 0;j--){delete dst_links_sort[i][j];}
+		delete[] dst_links_sort[i];
 	}
+	delete[] dst_links_sort;
 	
-	int nr_good = 0;
 	for(int i = 0; i < src_nr_points;i++){
-		int nr_i = src_possible_matches_id.at(i).size();
-		for(int j = i-1; j >= 0;j--){
-			int nr_j = src_possible_matches_id.at(j).size();
-			float src_distance = src_keypoints.at(i)->point->distance(src_keypoints.at(j)->point);
-			if(src_distance > max_dist){
-				vector<int> di = src_possible_matches_id.at(i);
-				vector<int> dj = src_possible_matches_id.at(j);
-				for(int ii = 0; ii < nr_i;ii++){
-					int dst_1_id = di.at(ii);
-					float * ddist_ii = dst_dist[dst_1_id];
-					for(int jj = 0; jj < nr_j;jj++){
-						int dst_2_id = dj.at(jj);
-						float diff_distance = ddist_ii[dst_2_id]-src_distance;
-						if(fabs(diff_distance) < max_dist){
-							counter[i][dst_1_id]++;
-							counter[j][dst_2_id]++;
-						}
-					}
-				}
-			}
-		}
+		delete[] current_p[i];
+		delete[] counter[i];
+		for(int j = i-1; j >= 0;j--){delete src_links_sort[i][j];}
+		delete[] src_links_sort[i];
 	}
-	gettimeofday(&end, NULL);
-	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	printf("net cost: %f\n",time);
-	int * src_matches = new int[src_nr_points];
-	for(int i = 0; i < src_nr_points; i++){
-		int best = 0;
-		int best_id = 0;
-		for(int j = 0; j < dst_nr_points; j++){
-			if(counter[i][j]>best){
-				best = counter[i][j];
-				best_id = j;
-			}
-		}
-		if(best >= 20){src_matches[i] = best_id;}
-		else{src_matches[i] = -1;}
-	}
+	delete[] current_p;
+	delete[] counter;
+	delete[] src_links_sort;
 	
-	int * dst_matches = new int[dst_nr_points];
-	for(int i = 0; i < dst_nr_points; i++){
-		int best = 0;
-		int best_id = 0;
-		for(int j = 0; j < src_nr_points; j++){
-			if(counter[j][i]>best){
-				best = counter[j][i];
-				best_id = j;
-			}
-		}
-		if(best >= 20){dst_matches[i] = best_id;}
-		else{dst_matches[i] = -1;}
-	}
-	
-	Transformation * transformation = new Transformation();
-	pcl::TransformationFromCorrespondences tfc;
-	for(int i = 0; i < src_nr_points; i++){
-		if(!(src_matches[i] == -1) && (dst_matches[src_matches[i]] == i)){
-			tfc.add(src_keypoints.at(i)->point->pos, dst_keypoints.at(src_matches[i])->point->pos);
-			transformation->weight++;
-			//printf("%i\n",src_matches[i]);
-			cvLine(img_combine,cvPoint(dst_keypoints.at(src_matches[i])->point->w+width,dst_keypoints.at(src_matches[i])->point->h),cvPoint(src_keypoints.at(i)->point->w,src_keypoints.at(i)->point->h),cvScalar(0,255,0, 0),1,8,0);
-		}
-	}
-	if(debugg_DistanceNetMatcherv2){
-		cvShowImage("combined image", img_combine);
-		cvWaitKey(0);
-	}
-
-	transformation->transformationMatrix = tfc.getTransformation().matrix();
-	transformation->src = src;
-	transformation->dst = dst;
-
-	if(debugg_DistanceNetMatcherv2){printf("done\n");cvReleaseImage( &img_combine );}
-	*/
+	for(int i = 0; i < linkPair_vec.size(); i++)		{delete[] linkPair_vec.at(i);}	
+	for(int i = 0; i < linkPair_skip_vec.size(); i++)	{delete[] linkPair_skip_vec.at(i);}
 	return transformation;
 }

@@ -452,7 +452,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	sort(transform_tasks->begin(),transform_tasks->end(),mycomparison1);
 	pthread_mutex_unlock(&transform_tasks_mutex);
 	
-	for(int i = 0; i < 1; i++){
+	for(int i = 0; i < 2; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
@@ -735,18 +735,38 @@ int main(int argc, char **argv)
 	
 	vector<FrameMatcher * > matchers;
 	vector<int> backing;
-	
+	/*
 	backing.push_back(1);
 	matchers.push_back(new BowAICK());
 	
 	backing.push_back(1);
 	matchers.push_back(new AICK());
+	*/
+	
+	DistanceNetMatcherv2 * d1;
+
+	backing.push_back(1);
+	matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, true, 0.02, 0.99, 0.2, float(250)*3000/200.0f));
 	
 	backing.push_back(1);
-	matchers.push_back(new DistanceNetMatcherv2());
+	matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, false, 0.02, 0.99, 0.2, float(250)*3000/200.0f));
 	
-	test(frames,"test00000001",matchers,backing);
-	analyze(frames,"test00000001",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	backing.push_back(1);
+	matchers.push_back(new AICK(250));
+
+	//backing.push_back(1);
+	//d1 = new DistanceNetMatcherv2(200, 0.01, 0.0196, false, 0.02, 0.99, 0.2, 3000);
+	//matchers.push_back(d1);
+	
+	//backing.push_back(1);
+	//BowAICK * baick = new BowAICK(200);
+	//matchers.push_back(baick);
+	
+	//test(frames,"testDnet00000002",matchers,backing);
+	//analyze(frames,"testDnet00000002",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	
+	test(frames,"testDnet00000009",matchers,backing);
+	analyze(frames,"testDnet00000009",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
 	printf("---------------------END---------------------\n");
 	return 0;
 }

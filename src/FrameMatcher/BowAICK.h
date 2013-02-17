@@ -37,6 +37,7 @@ class BowAICK: public FrameMatcher
 		float stabilety_threshold;
 		int max_points;
 		BowAICK();
+		BowAICK(int max_points_);
 		~BowAICK();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);
 		float getAlpha(int iteration);
