@@ -57,7 +57,11 @@ class DistanceNetMatcherv2: public FrameMatcher
 		float p1_rejection;
 		float p2_rejection;
 		float likelihood_rejection;
-
+		
+		bool prior;
+		
+		DistanceNetMatcherv2(int max_points_, float std_dist_, float bounds_, bool prior_, float movementPerFrame_, float p1_rejection_, float p2_rejection_, float likelihood_rejection_);
+		
 		DistanceNetMatcherv2();
 		~DistanceNetMatcherv2();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);

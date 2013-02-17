@@ -18,6 +18,20 @@ AICK::AICK()
 	max_points = 100000;
 }
 
+AICK::AICK(int max_points_)
+{
+	name = "AICK";
+	nr_iter = 30;
+	
+	feature_scale = 1;
+	
+	distance_threshold = 0.015f * feature_scale;
+	feature_threshold = 0.15f;
+	shrinking = 0.8f;
+	stabilety_threshold = 0.000001f;
+	max_points = max_points_;
+}
+
 AICK::~AICK(){printf("delete AICK\n");}
 
 float AICK::getAlpha(int iteration){return 1-pow(shrinking,float(iteration));}
