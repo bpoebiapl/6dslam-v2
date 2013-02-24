@@ -410,6 +410,8 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 		}
 	}
 	
+	printf("matchers setup\n");
+	
 	transform_tasks = new vector<test_task * >();
 	vector<string> files = vector<string>();
 	getdir(out_path,files);
@@ -452,7 +454,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	sort(transform_tasks->begin(),transform_tasks->end(),mycomparison1);
 	pthread_mutex_unlock(&transform_tasks_mutex);
 	
-	for(int i = 0; i < 2; i++){
+	for(int i = 0; i < 8; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
@@ -462,8 +464,8 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	printf("transform_added_tasks:%i\n",transform_added_tasks);
 	while(transform_nr_done_tasks() < transform_added_tasks){
 		gettimeofday(&test_end, NULL);
-		//printf("%i/%i Time spent: %f\n",transform_nr_done_tasks(),transform_added_tasks,(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f);
-		usleep(500000);
+		printf("%i/%i Time spent: %f\n",transform_nr_done_tasks(),transform_added_tasks,(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f);
+		usleep(50000);
 	}
 }
 
@@ -561,13 +563,17 @@ void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMat
 					if(data->pos_error < thresh){nr_good++;}
 					else						{nr_bad++;}
 				}
-				printf("%.5f ",float(nr_good)/float(nr_good+nr_bad));
+				if(nr_good+nr_bad == 0){
+					printf("%.5f ",0.0f);
+				}else{
+					printf("%.5f ",float(nr_good)/float(nr_good+nr_bad));
+				}
 			}
 			printf("; ");
 		}
 
 		printf("];\n");
-
+		/*
 		printf("%s_%i_%s_mat_rot = [ ",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
 		for(int step = 1; step < results->at(matcher)->size(); step++)
 		{
@@ -589,7 +595,7 @@ void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMat
 			printf("; ");
 		}
 		printf("];\n");
-		
+		*/
 		printf("%s_%i_%s_avg_time = ",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
 		double avg_time = 0;
 		double total_trans = 0;
@@ -744,15 +750,41 @@ int main(int argc, char **argv)
 	*/
 	
 	DistanceNetMatcherv2 * d1;
+	
 
-	backing.push_back(1);
-	matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, true, 0.02, 0.99, 0.2, float(250)*3000/200.0f));
 	
-	backing.push_back(1);
-	matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, false, 0.02, 0.99, 0.2, float(250)*3000/200.0f));
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(0,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
 	
-	backing.push_back(1);
-	matchers.push_back(new AICK(250));
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(0,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
+
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(1,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(1,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(5,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(5,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
+	
+	backing.push_back(30);
+	matchers.push_back(new AICK(100));
+	
+	//backing.push_back(1);
+	//matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, false, 0.02));
+	
+	//backing.push_back(1);
+	//matchers.push_back(new AICK(250));
 
 	//backing.push_back(1);
 	//d1 = new DistanceNetMatcherv2(200, 0.01, 0.0196, false, 0.02, 0.99, 0.2, 3000);
@@ -765,8 +797,10 @@ int main(int argc, char **argv)
 	//test(frames,"testDnet00000002",matchers,backing);
 	//analyze(frames,"testDnet00000002",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
 	
-	test(frames,"testDnet00000009",matchers,backing);
-	analyze(frames,"testDnet00000009",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	printf("added matchers\n");
+	
+	//test(frames,"testDnet00000015",matchers,backing);
+	analyze(frames,"testDnet00000015",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
 	printf("---------------------END---------------------\n");
 	return 0;
 }

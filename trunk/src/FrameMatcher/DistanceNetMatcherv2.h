@@ -50,17 +50,21 @@ class DistanceNetMatcherv2: public FrameMatcher
 		int lookup_size;
 		float bounds;
 		float probIgnore;
-		float movementPerFrame;
+
 		float * lookup;
 		float lookup_step;
 		
-		float p1_rejection;
-		float p2_rejection;
-		float likelihood_rejection;
+		//float p1_rejection;
+		//float p2_rejection;
+		//float likelihood_rejection;
 		
-		bool prior;
+		bool movement_prior;
+		float movementPerFrame;
+				
+		bool feature_prior;
+		float feature_smoothing;
 		
-		DistanceNetMatcherv2(int max_points_, float std_dist_, float bounds_, bool prior_, float movementPerFrame_, float p1_rejection_, float p2_rejection_, float likelihood_rejection_);
+		DistanceNetMatcherv2(int iter_, int max_points_, float std_dist_, float bounds_, bool movement_prior_, float movementPerFrame_, bool feature_prior_, float feature_smoothing_);
 		
 		DistanceNetMatcherv2();
 		~DistanceNetMatcherv2();
