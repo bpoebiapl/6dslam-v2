@@ -39,6 +39,8 @@ struct linkPair {
 	float * c_j;
 };
 
+
+
 using namespace std;
 
 class DistanceNetMatcherv2: public FrameMatcher

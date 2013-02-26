@@ -365,7 +365,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	for(unsigned int k = 0; k < matchers.size(); k++){
 		int max_backing = backing.at(k);
 		for(int i = 0; i < (int)all_frames->size(); i++){
-			for(int j = i-1; j >=  max(0,i-max_backing); j--){
+			for(int j = i-1; j >=  max(0,i-max_backing); j-=10){
 				char fpath [150];
 				sprintf(fpath,"%s%s_%i_%i_%i.task",out_path.c_str(),dataset.c_str(),i,j,k);
 				ifstream task_file (fpath);
@@ -430,7 +430,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 				task_file.read (b_char,size);
 				task_file.close();
 				
-				//printf("%f\n",float(i)/float(files.size()));
+				printf("%f\n",float(i)/float(files.size()));
 				
 				if(b_int[3] == 0){
 					test_task * t = new test_task();
@@ -454,7 +454,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	sort(transform_tasks->begin(),transform_tasks->end(),mycomparison1);
 	pthread_mutex_unlock(&transform_tasks_mutex);
 	
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 12; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
@@ -751,40 +751,20 @@ int main(int argc, char **argv)
 	
 	DistanceNetMatcherv2 * d1;
 	
-
+	//backing.push_back(80);
+	//matchers.push_back(new DistanceNetMatcherv4(1,10000, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
 	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(0,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
+	//backing.push_back(80);
+	//matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
 	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(0,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
-
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(1,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(1,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(5,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(5,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
-	
-	backing.push_back(30);
-	matchers.push_back(new AICK(100));
+	//backing.push_back(80);
+	//matchers.push_back(new AICK(100));
 	
 	//backing.push_back(1);
 	//matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, false, 0.02));
 	
-	//backing.push_back(1);
-	//matchers.push_back(new AICK(250));
+	backing.push_back(80);
+	matchers.push_back(new AICK(2500));
 
 	//backing.push_back(1);
 	//d1 = new DistanceNetMatcherv2(200, 0.01, 0.0196, false, 0.02, 0.99, 0.2, 3000);
@@ -799,8 +779,8 @@ int main(int argc, char **argv)
 	
 	printf("added matchers\n");
 	
-	//test(frames,"testDnet00000015",matchers,backing);
-	analyze(frames,"testDnet00000015",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	test(frames,"testDnet00000027",matchers,backing);
+	analyze(frames,"testDnet00000027",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
 	printf("---------------------END---------------------\n");
 	return 0;
 }

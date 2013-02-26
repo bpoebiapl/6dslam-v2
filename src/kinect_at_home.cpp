@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 	mlm->addMatcher(new FrameMatcher());
 
 
-	map->matcher = new DistanceNetMatcherv2(15,400, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
+	map->matcher = new DistanceNetMatcherv3(1,100, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
 	map->loopclosure_matcher = bowaick;
 	//map->segmentation = new RGBDSegmentationBase();
 	map->segmentation = new RGBDSegmentationDummy();
