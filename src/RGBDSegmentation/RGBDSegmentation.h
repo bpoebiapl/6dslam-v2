@@ -53,5 +53,6 @@ class RGBDSegmentation
 
 #include "RGBDSegmentationBase.h"
 #include "RGBDSegmentationTest.h"
+#include "RGBDSegmentationPCL.h"
 #include "RGBDSegmentationDummy.h"
 #endif

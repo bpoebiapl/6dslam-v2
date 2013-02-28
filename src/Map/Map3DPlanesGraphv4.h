@@ -44,6 +44,8 @@ class Map3DPlanesGraphv4: public Map3D
 	float smoothing;
 	bool render_full;
 
+	vector< vector<Transformation *> * > * transformations_mat;
+	
 	Map3DPlanesGraphv4();
 	~Map3DPlanesGraphv4(); 
 	

@@ -184,10 +184,11 @@ vector< Frame_input * > * getFrameInput(string path,int start, int max, Calibrat
 	for(int i = start; i <= start+max; i+=1){
 		Frame_input * fi =  new Frame_input();
 		sprintf(fpath,"%s/rgb_frames/%05i.png",path.c_str(),i);
-		//printf("%s\n",fpath);
+		printf("----------------------%i---------------------\n",i);
+		printf("%s\n",fpath);
 		fi->rgb_path 			= string(fpath);
 		sprintf(fpath,"%s/depth_frames/%05i.png",path.c_str(),i);
-		//printf("%s\n",fpath);
+		printf("%s\n",fpath);
 		fi->depth_path			= string(fpath);
 		fi->calibration			= calibration;
 		all_inp->push_back(fi);
@@ -248,27 +249,27 @@ int main(int argc, char **argv)
 	surf->thres *= 1.0;
 	
 	
-	Map3D * map = new Map3Dbase();
+	//Map3D * map = new Map3Dbase();
 	//Map3D * map = new Map3Dbow(bow_path);
 	//Map3D * map = new Map3DbaseGraph();
 	//Map3D * map = new Map3DPlanesGraph();
 	//Map3D * map = new Map3DPlanesGraphv3();
-	//Map3D * map = new Map3DPlanesGraphv4();
+	Map3D * map = new Map3DPlanesGraphv4();
 	
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	//aick->max_points 			= 500;
+	aick->max_points 			= 300;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
-	aick->nr_iter				= 25;
-	aick->shrinking				= 0.8;
+	aick->nr_iter				= 10;
+	aick->shrinking				= 0.45;
 	
 	BowAICK * bowaick				= new BowAICK();
-	bowaick->max_points				= 2800;
+	bowaick->max_points				= 200;
 	bowaick->distance_threshold		= 0.01f;
-	bowaick->nr_iter				= 30;
-	bowaick->shrinking				= 0.85;
+	bowaick->nr_iter				= 10;
+	bowaick->shrinking				= 0.55;
 	bowaick->bow_threshold			= 0.17;
 	//bowaick->feature_scale			= 0.5;
 	//bowaick->feature_threshold		*= bowaick->feature_scale;
@@ -296,17 +297,20 @@ int main(int argc, char **argv)
 	mlm->addMatcher(new FrameMatcher());
 
 
-	map->matcher = new DistanceNetMatcherv3(1,100, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
+	map->matcher = aick;//new DistanceNetMatcherv3(1,100, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
 	map->loopclosure_matcher = bowaick;
 	//map->segmentation = new RGBDSegmentationBase();
-	map->segmentation = new RGBDSegmentationDummy();
+	//map->segmentation = new RGBDSegmentationTest();
+	map->segmentation = new RGBDSegmentationPCL();
+	//map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib0;
 	map->extractor = surf;
 	map->setVisualization(viewer);
 	viewer_global = viewer;
 	
 	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/45743f89-6014-48bc-937c-0acfbae19d93",1, 100,calib0);
-	all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",001, 5,calib0);
+	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",001, 5,calib0);
+	all_input = getFrameInput("/home/johane/alper_office",001, 1226,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",1, 1500,calib0);
 	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/f6ab52d2-57c5-4ced-a53b-42a34dacc7a2",1000, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 500,calib0);

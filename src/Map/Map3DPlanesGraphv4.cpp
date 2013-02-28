@@ -49,7 +49,11 @@ void * map_start_test_thread( void *ptr )
 			//frames->at(t) = f;//(new RGBDFrame(all_input->at(t),mymap->extractor,mymap->segmentation));
 			
 			Transformation * t = task->matcher->getTransformation(task->src, task->dst);
-			if(t->weight != 0){task->m->transformations.push_back(t);}
+			if(t->weight != 0){
+				vector< vector<Transformation *> * > * tmat =  task->m->transformations_mat;
+				tmat->at(task->src->id)->push_back(t);
+				//task->m->transformations.push_back(t);
+			}
 			else{delete t;}
 			delete task;
 			
@@ -70,15 +74,16 @@ bool comparison_Map3DPlanesGraphv4 (Transformation * i,Transformation * j) {
 using namespace std;
 
 Map3DPlanesGraphv4::Map3DPlanesGraphv4(){
-	max_backing = 5;
+	transformations_mat = new vector< vector<Transformation *> * >();
+	max_backing = 30;
 	
-	match_limit_close = 10.00;
-	w_limit_close = 3.50;
+	match_limit_close = 50.00;
+	w_limit_close = 3.70;
 	
 	match_limit_loop = 50.00;
 	w_limit_loop = 3.80;
 	
-	estimateIter = 30;
+	estimateIter = 150;
 	img_threshold = 0.005;
 	smoothing = 0.1;
 	render_full = false;
@@ -140,10 +145,11 @@ g2o::EdgeSE3 * Map3DPlanesGraphv4::getG2OEdge(Transformation * transformation)
 
 void Map3DPlanesGraphv4::addFrame(Frame_input * fi){addFrame(new RGBDFrame(fi,extractor,segmentation));}
 void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
+	transformations_mat->push_back(new vector<Transformation *>());
 	Matrix4f pose = Matrix4f::Identity();
 
 	printf("--------------------------------%i--------------------------------\n",frames.size());
-	/*
+	
 	float best = -1;
 	Transformation * best_t = 0;
 	
@@ -177,10 +183,10 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 	
 	fmloop->filters.push_back(updatev2);
 	fmloop->thresholds.push_back(w_limit_loop);
-	*/
+	
 	
 	for(int i = frames.size(); (i > 0) && ((frames.size() - i) < max_backing); i--){
-	
+		/*
 		map_task * current_task = new map_task;
 		current_task->src = frame;
 		current_task->dst = frames.at(i-1);
@@ -197,15 +203,55 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 		pthread_mutex_lock(&map_tasks_mutex);
 		map_tasks.push_back(current_task);
 		pthread_mutex_unlock(&map_tasks_mutex);
-		/*
+		*/
+		
 		Transformation * t = fmclose->getTransformation(frame, frames.at(i-1));
 		if(t->weight > best){
 			pose = poses.at(i-1)*t->transformationMatrix;
 			best = t->weight;
 			best_t = t;
+			
+			vector< Plane * > * planes_src = t->src->planes;
+			vector< Plane * > * planes_dst = t->dst->planes;
+			
+			for(int j = 0; j < planes_src->size(); j++){
+				for(int k = 0; k < planes_dst->size(); k++){
+					Plane * src_p = planes_src->at(j);
+					Plane * dst_p = planes_dst->at(k);
+					Matrix4f transformationmat = t->transformationMatrix;
+					float xn = transformationmat(0,0)*dst_p->normal_x+transformationmat(0,1)*dst_p->normal_y+transformationmat(0,2)*dst_p->normal_z;
+					float yn = transformationmat(1,0)*dst_p->normal_x+transformationmat(1,1)*dst_p->normal_y+transformationmat(1,2)*dst_p->normal_z;
+					float zn = transformationmat(2,0)*dst_p->normal_x+transformationmat(2,1)*dst_p->normal_y+transformationmat(2,2)*dst_p->normal_z;
+			
+					float xp = transformationmat(0,0)*dst_p->point_x+transformationmat(0,1)*dst_p->point_y+transformationmat(0,2)*dst_p->point_z+transformationmat(0,3);
+					float yp = transformationmat(1,0)*dst_p->point_x+transformationmat(1,1)*dst_p->point_y+transformationmat(1,2)*dst_p->point_z+transformationmat(1,3);
+					float zp = transformationmat(2,0)*dst_p->point_x+transformationmat(2,1)*dst_p->point_y+transformationmat(2,2)*dst_p->point_z+transformationmat(2,3);
+					
+					float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
+					float mid_diff = src_p->distance(xp,yp,zp);
+					if(normal_diff < 0.025 && fabs(mid_diff) < 0.04){
+						printf("merge planes...\n");
+						/*
+						MergedPlanes * src_mp = planeStructs.at(src_p->id)->mergedPlanes;
+						MergedPlanes * dst_mp = planeStructs.at(dst_p->id)->mergedPlanes;
+						if(src_mp != dst_mp){
+							for(unsigned int m = 0; m < dst_mp->data.size(); m++){
+								PlaneStruct * current_planeStruct = dst_mp->data.at(m);
+								current_planeStruct->mergedPlanes = src_mp;
+								src_mp->data.push_back(current_planeStruct);
+							}
+							mergedPlanes.at(dst_mp->index) = mergedPlanes.back();
+							mergedPlanes.at(dst_mp->index)->index = dst_mp->index;
+							mergedPlanes.pop_back();
+						}
+						*/
+					}
+					
+				}
+			}
 		}
 		if(t->weight > w_limit_close){transformations.push_back(t);}
-		*/
+		
 	}
 	//printf("best: %f\n",best);
 	//if(best <= w_limit_close && best_t != 0){transformations.push_back(best_t);}
@@ -222,6 +268,7 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 		float d = test->image_descriptor->distance(frame_desc);
 		if(d<img_threshold)
 		{
+/*
 			map_task * current_task = new map_task;
 			current_task->src = frame;
 			current_task->dst = test;
@@ -237,22 +284,25 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 			pthread_mutex_lock(&map_tasks_mutex);
 			map_tasks.push_back(current_task);
 			pthread_mutex_unlock(&map_tasks_mutex);
-			/*
+*/
+			
 			Transformation * t = fmloop->getTransformation(frame, test);
 			if(t->weight > w_limit_loop)	{
 				printf("add %i %i\n",i,frames.size());
 				transformations.push_back(t);}
 			else					{delete t;}
-			*/
+
 		}
 	}
+
 	//delete update;
 	//cvReleaseImage( &depth_img );
 	
-	while(map_tasks_to_do() > 0){usleep(1000);}
+	//while(map_tasks_to_do() > 0){usleep(1000);}
 }
 void Map3DPlanesGraphv4::addTransformation(Transformation * transformation){transformations.push_back(transformation);}
 void Map3DPlanesGraphv4::estimate(){
+	usleep(500000);
 	graphoptimizer.clear();
 	graphoptimizer.setMethod(g2o::SparseOptimizer::LevenbergMarquardt);
 	graphoptimizer.setVerbose(false);
@@ -273,17 +323,42 @@ void Map3DPlanesGraphv4::estimate(){
 		frames.at(i)->g2oVertex = vertexSE3;
 		if(i == 0){vertexSE3->setFixed(true);}
 	}
-	
+	/*
+	for(int i = 0; i < transformations_mat->size(); i++){
+		for(int j = 0; j < transformations_mat->at(i)->size(); j++){
+			Transformation * transformation = transformations_mat->at(i)->at(j);
+			printf("pointer: %d\n",(unsigned int *)transformation);
+			if(transformation != 0 && (transformation->weight >= w_limit_close))
+			{
+				Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
+				Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
+				g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
+				g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
+				printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
+				edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;//graphoptimizer.vertex(transformation->src->id);
+				edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;//graphoptimizer.vertex(transformation->dst->id);
+				edgeSE3->setMeasurement(transfoSE3.inverse());
+				edgeSE3->setInverseMeasurement(transfoSE3);
+				Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
+				mat.setIdentity(6,6);
+				edgeSE3->information() = mat;
+				graphoptimizer.addEdge(edgeSE3);
+			}
+		}
+	}
+	*/
 	for(int i  = 0; i < transformations.size(); i++){
 		Transformation * transformation = transformations.at(i);
-		//if((transformation->weight >= w_limit_close))
+		printf("pointer: %d\n",(unsigned int *)transformation);
+		if(transformation != 0 && (transformation->weight >= w_limit_close))
 		{
 			Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
 			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
-			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;	
-			edgeSE3->vertices()[0] = graphoptimizer.vertex(transformation->src->id);
-			edgeSE3->vertices()[1] = graphoptimizer.vertex(transformation->dst->id);
+			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
+			printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
+			edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;//graphoptimizer.vertex(transformation->src->id);
+			edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;//graphoptimizer.vertex(transformation->dst->id);
 			edgeSE3->setMeasurement(transfoSE3.inverse());
 			edgeSE3->setInverseMeasurement(transfoSE3);
 			Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
@@ -292,7 +367,7 @@ void Map3DPlanesGraphv4::estimate(){
 			graphoptimizer.addEdge(edgeSE3);
 		}
 	}
-	
+	/*
 	for(int i  = 1; i < poses.size(); i++){
 		Eigen::Affine3f eigenTransform(Eigen::Matrix4f::Identity());
 		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
@@ -307,7 +382,7 @@ void Map3DPlanesGraphv4::estimate(){
 		edgeSE3->information() = mat*smoothing;
 		graphoptimizer.addEdge(edgeSE3);
 	}
-	
+	*/
 	graphoptimizer.initializeOptimization();
 	graphoptimizer.setVerbose(true);
 	graphoptimizer.optimize(estimateIter);
@@ -322,7 +397,7 @@ void Map3DPlanesGraphv4::setVisualization(boost::shared_ptr<pcl::visualization::
 
 //bool goToNext = false;
 //void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,void* viewer_void){goToNext = true;}
-
+/*
 void Map3DPlanesGraphv4::visualize(){
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 	if(!render_full){
@@ -434,9 +509,123 @@ void Map3DPlanesGraphv4::visualize(){
 	while (show){
 		viewer->spinOnce (100);
 		//boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-		int key = cvWaitKey( 15 );
-		if( key != -1 ){printf("stop show\n");break;}
+		//int key = cvWaitKey( 15 );
+		//if( key != -1 ){printf("stop show\n");break;}
 		//printf("key: %i\n",key);
+	}
+	
+}
+*/
+void Map3DPlanesGraphv4::visualize(){
+	bool render_full = true;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+	if(!render_full){
+		cloud->width    = poses.size();
+		cloud->height   = 1;
+		cloud->points.resize (cloud->width);
+		cloud->width = 0;
+		for(int i = 0; i < poses.size(); i+=1){
+			int randr = 0;rand()%256;
+			int randg = 255;rand()%256;
+			int randb = 0;rand()%256;
+			Eigen::Matrix4f m1 = poses.at(i);
+			cloud->points[cloud->width].x = m1(0,3);
+			cloud->points[cloud->width].y = m1(1,3);
+			cloud->points[cloud->width].z = m1(2,3);
+			printf("%f %f %f\n",cloud->points[cloud->width].x,cloud->points[cloud->width].y,cloud->points[cloud->width].z);
+			cloud->points[cloud->width].r = randr;
+			cloud->points[cloud->width].g = randg;
+			cloud->points[cloud->width].b = randb;
+			cloud->width++;
+		}
+	}else{
+		int step = poses.size()/100;
+		if(step<1){step = 1;}
+		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+		tmpcloud->width    = 640*480;
+		tmpcloud->height   = 1;
+		tmpcloud->points.resize (tmpcloud->width);
+	
+		cloud->width    = 0;
+		cloud->height   = 1;
+		//cloud->points.resize (640*480*200);
+	
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud2 (new pcl::PointCloud<pcl::PointXYZRGB>);
+		for(int i = 0; i < frames.size(); i+=step){
+			RGBDFrame * frame = frames.at(i);
+			tmpcloud->width = 0;
+			IplImage* rgb_img 	= cvLoadImage(frame->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+			IplImage* depth_img = cvLoadImage(frame->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+		
+			float d_scaleing	= frame->input->calibration->ds/frame->input->calibration->scale;
+			float centerX		= frame->input->calibration->cx;
+			float centerY		= frame->input->calibration->cy;
+			float invFocalX		= 1.0f/frame->input->calibration->fx;
+			float invFocalY		= 1.0f/frame->input->calibration->fy;
+		
+			char * rgb_data		= (char *)rgb_img->imageData;
+			unsigned short * depth_data	= (unsigned short *)depth_img->imageData;
+		
+			int pixelstep = 2;
+			for(int w = pixelstep; w < 640; w+=pixelstep){
+				for(int h = pixelstep; h < 480; h+=pixelstep){
+					int ind = 640*h+w;
+					float x = 0;
+					float y = 0;
+					float z = float(depth_data[ind]) * d_scaleing;
+				
+					int r = char(rgb_data[3*ind+2]);
+					int g = char(rgb_data[3*ind+1]);
+					int b = char(rgb_data[3*ind+0]);
+				
+					if(r < 0){r = 255+r;}
+					if(g < 0){g = 255+g;}
+					if(b < 0){b = 255+b;}
+
+					if(z > 0 && z < 100.25f){
+						x = (w - centerX) * z * invFocalX;
+					   	y = (h - centerY) * z * invFocalY;
+					   	
+					   	tmpcloud->points[tmpcloud->width].x = x;
+						tmpcloud->points[tmpcloud->width].y = y;
+						tmpcloud->points[tmpcloud->width].z = z;
+						tmpcloud->points[tmpcloud->width].r = float(r);
+						tmpcloud->points[tmpcloud->width].g = float(g);
+						tmpcloud->points[tmpcloud->width].b = float(b);
+						tmpcloud->width++;
+					}
+				}
+			}
+		
+			cvReleaseImage( &rgb_img );
+			cvReleaseImage( &depth_img );
+		
+			pcl::transformPointCloud (*tmpcloud, *tmpcloud2, poses.at(i));
+		
+			cloud->points.resize (cloud->width+tmpcloud2->width);
+		
+			for(int j = 0; j < tmpcloud2->width*tmpcloud2->height; j++)
+			{
+				cloud->points[cloud->width].x = tmpcloud2->points[j].x;
+				cloud->points[cloud->width].y = tmpcloud2->points[j].y;
+				cloud->points[cloud->width].z = tmpcloud2->points[j].z;
+				cloud->points[cloud->width].r = tmpcloud2->points[j].r;
+				cloud->points[cloud->width].g = tmpcloud2->points[j].g;
+				cloud->points[cloud->width].b = tmpcloud2->points[j].b;
+				cloud->width++;
+			}
+		}
+	}
+	//viewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
+	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+	viewer->removePointCloud("sample cloud");
+	viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
+	usleep(100);
+	while (true){
+		viewer->spinOnce (100);
+		boost::this_thread::sleep (boost::posix_time::microseconds (100000));
 	}
 	
 }

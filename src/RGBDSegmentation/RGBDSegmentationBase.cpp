@@ -189,11 +189,11 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 			}
 		}
 	}
-/*	
 	
-	gettimeofday(&end, NULL);
-	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	printf("Segment cost: %f\n",time);
+	
+	//gettimeofday(&end, NULL);
+	//float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	//printf("Segment cost: %f\n",time);
 
 	float* tmp_red = new float[height*width];
 	float* tmp_green = new float[height*width];
@@ -224,7 +224,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	cvShowImage("segments", img);
 	cvWaitKey(0);
 	//cvReleaseImage( &img );
-	*/
+	
 /*
 	gettimeofday(&start, NULL);
 	int step = 5;
