@@ -44,6 +44,7 @@ class Plane
 
 	FeatureDescriptor * color_histogram;
 	
+	//Plane();
 	Plane(Point * a, Point * b,Point * c);
 	Plane(pcl::PointXYZRGBNormal * pa, pcl::PointXYZRGBNormal * pb,pcl::PointXYZRGBNormal * pc);
 

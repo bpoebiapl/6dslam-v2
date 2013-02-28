@@ -49,7 +49,7 @@ target_link_libraries(FeatureExtractor ${PCL_LIBRARIES})
 target_link_libraries(FeatureExtractor opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 include_directories(src/RGBDSegmentation)
-add_library(RGBDSegmentation src/RGBDSegmentation/RGBDSegmentation.cpp src/RGBDSegmentation/RGBDSegmentationBase.cpp src/RGBDSegmentation/RGBDSegmentationTest.cpp src/RGBDSegmentation/RGBDSegmentationDummy.cpp)
+add_library(RGBDSegmentation src/RGBDSegmentation/RGBDSegmentation.cpp src/RGBDSegmentation/RGBDSegmentationBase.cpp src/RGBDSegmentation/RGBDSegmentationTest.cpp src/RGBDSegmentation/RGBDSegmentationDummy.cpp src/RGBDSegmentation/RGBDSegmentationPCL.cpp)
 
 include_directories(src/core)
 add_library(core src/core/RGBDFrame.cpp src/core/Transformation.cpp)
@@ -109,6 +109,10 @@ target_link_libraries(evaluate_registrationv2 ${PCL_LIBRARIES} ${OpenCV_LIBS} ma
 target_link_libraries(evaluate_registrationv2 g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
 target_link_libraries(evaluate_registrationv2 opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
+###################
+
+add_executable(imu_grabber src/imu_grabber.cpp)
+target_link_libraries(imu_grabber phidget21)
 
 
 

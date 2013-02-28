@@ -372,7 +372,7 @@ vector<Plane * > * RGBDSegmentationTest::segment(IplImage * rgb_img,IplImage * d
 
 	
 	//printf("planes->size() = %i\n",planes->size());
-	/*
+	
 	float st4 = float(step)/4.0;
 	IplImage * img_clone2 = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
 	cvCopy( rgb_img, img_clone2, NULL );
@@ -402,7 +402,7 @@ vector<Plane * > * RGBDSegmentationTest::segment(IplImage * rgb_img,IplImage * d
 	cvShowImage("planeMix", img_clone2);
 	cvWaitKey(0);
 	cvReleaseImage( &img_clone2 );
-	*/
+	
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	printf("Segment cost: %f\n",time);
