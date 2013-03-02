@@ -38,10 +38,10 @@ float AICK::getAlpha(int iteration){return 1-pow(shrinking,float(iteration));}
 
 Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
-	printf("start AICK...\n");
+	//printf("start AICK...\n");
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
-	printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);
+	//printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);
 	if(debugg_AICK){printf("AICK::getTransformation(%i,%i)\n",src->id,dst->id);}
 	IplImage* img_combine;
 	int width;
@@ -310,6 +310,6 @@ Transformation * AICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	float poss_diff = sqrt(transformation->transformationMatrix(0,3)*transformation->transformationMatrix(0,3)+transformation->transformationMatrix(1,3)*transformation->transformationMatrix(1,3)+transformation->transformationMatrix(2,3)*transformation->transformationMatrix(2,3));
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	printf("AICK cost: %f\n",time);
+	//printf("AICK cost: %f\n",time);
 	return transformation;
 }

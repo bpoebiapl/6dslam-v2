@@ -43,6 +43,10 @@ class Map3DPlanesGraphv4: public Map3D
 	
 	float smoothing;
 	bool render_full;
+	
+	int plane_segment_id_counter;
+	map< Plane *, int > map_id_plane;
+	vector< vector< pair <RGBDFrame * , Plane * > > > mergedPlanes;
 
 	vector< vector<Transformation *> * > * transformations_mat;
 	

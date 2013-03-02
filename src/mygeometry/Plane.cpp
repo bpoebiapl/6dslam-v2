@@ -96,7 +96,7 @@ Plane::Plane(std::vector<float> * px, std::vector<float> * py, std::vector<float
 
 	JacobiSVD<MatrixXf> svd(covMat, ComputeThinU | ComputeThinV);
 	//fit->U = svd.matrixU();
-	VectorXf S = svd.singularValues();
+	S = svd.singularValues();
 	//fit->V = svd.matrixV();
 	weight = S(2);
 

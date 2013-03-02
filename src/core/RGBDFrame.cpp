@@ -398,3 +398,84 @@ RGBDFrame::RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud, v
 }
 
 RGBDFrame::~RGBDFrame(){printf("~RGBDFrame()\n");}
+
+void RGBDFrame::showPlanes(){
+	IplImage* rgb_img 	= cvLoadImage(input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	IplImage* depth_img = cvLoadImage(input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	
+	float d_scaleing	= input->calibration->ds/input->calibration->scale;
+	float centerX		= input->calibration->cx;
+	float centerY		= input->calibration->cy;
+	float invFocalX		= 1.0f/input->calibration->fx;
+    float invFocalY		= 1.0f/input->calibration->fy;
+    
+	unsigned short * depth_data	= (unsigned short *)depth_img->imageData;
+	char * rgb_data		= (char *)rgb_img->imageData;
+	int step = 5;
+	for(int w = step; w < width; w+=1){
+		for(int h = step; h < height; h+=1){
+			
+			int ind = 640*h+w;
+			float x = 0;
+			float y = 0;
+			float z = float(depth_data[ind]) * d_scaleing;
+		   	int best_i;
+			float best = 1000;
+			if(z > 0){
+				x = (w - centerX) * z * invFocalX;
+		       	y = (h - centerY) * z * invFocalY;
+
+				for(int i = 0; i < planes->size(); i++){
+					float d = fabs(planes->at(i)->distance(x,y,z));
+					if(d < best){
+						best = d;
+						best_i = i;
+					}
+				}
+				//printf("%i %i %f\n",w,h,best);
+				if(best < 0.01){
+					if(best_i == 0){
+						rgb_data[3*ind+0] = 0;
+						rgb_data[3*ind+1] = 0;
+						rgb_data[3*ind+2] = 0;
+					}else if(best_i == 1){
+						rgb_data[3*ind+0] = 255;
+						rgb_data[3*ind+1] = 0;
+						rgb_data[3*ind+2] = 0;
+					}else if(best_i == 2){
+						rgb_data[3*ind+0] = 0;
+						rgb_data[3*ind+1] = 0;
+						rgb_data[3*ind+2] = 255;
+					}else if(best_i == 3){
+						rgb_data[3*ind+0] = 0;
+						rgb_data[3*ind+1] = 255;
+						rgb_data[3*ind+2] = 0;
+					}else if(best_i == 4){
+						rgb_data[3*ind+0] = 255;
+						rgb_data[3*ind+1] = 0;
+						rgb_data[3*ind+2] = 255;
+					}else if(best_i == 5){
+						rgb_data[3*ind+0] = 0;
+						rgb_data[3*ind+1] = 255;
+						rgb_data[3*ind+2] = 255;
+					}else if(best_i == 6){
+						rgb_data[3*ind+0] = 0;
+						rgb_data[3*ind+1] = 255;
+						rgb_data[3*ind+2] = 255;
+					}else if(best_i == 7){
+						rgb_data[3*ind+0] = 255;
+						rgb_data[3*ind+1] = 255;
+						rgb_data[3*ind+2] = 255;
+					}
+				}
+			}
+		}
+	}
+	
+	
+	cvNamedWindow("frame planes", CV_WINDOW_AUTOSIZE );
+	cvShowImage("frame planes", rgb_img);
+	cvWaitKey(0);
+	cvReleaseImage( &rgb_img );
+	cvReleaseImage( &depth_img );
+}

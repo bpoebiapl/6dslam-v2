@@ -17,6 +17,11 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/console/parse.h>
 
+#include "VertexPlane.cpp"
+#include "EdgeSe3Plane.cpp"
+#include "EdgeSe3Plane2.cpp"
+#include "EdgePlane.cpp"
+
 pthread_mutex_t map_tasks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct map_task {
@@ -75,16 +80,16 @@ using namespace std;
 
 Map3DPlanesGraphv4::Map3DPlanesGraphv4(){
 	transformations_mat = new vector< vector<Transformation *> * >();
-	max_backing = 30;
+	max_backing = 10;
 	
 	match_limit_close = 50.00;
 	w_limit_close = 3.70;
 	
 	match_limit_loop = 50.00;
-	w_limit_loop = 3.80;
+	w_limit_loop = 3.70;
 	
 	estimateIter = 150;
-	img_threshold = 0.005;
+	img_threshold = 0.004;
 	smoothing = 0.1;
 	render_full = false;
 	graphoptimizer.setMethod(g2o::SparseOptimizer::LevenbergMarquardt);
@@ -97,6 +102,9 @@ Map3DPlanesGraphv4::Map3DPlanesGraphv4(){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, map_start_test_thread, NULL);
 	}
+	
+	plane_segment_id_counter = 1;
+	mergedPlanes.push_back(vector<pair<RGBDFrame * , Plane * > > ());
 }
 
 Map3DPlanesGraphv4::~Map3DPlanesGraphv4(){}
@@ -149,6 +157,21 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 	Matrix4f pose = Matrix4f::Identity();
 
 	printf("--------------------------------%i--------------------------------\n",frames.size());
+	
+	vector< Plane * > * planes_src = frame->planes;
+	for(int j = 0; j < planes_src->size(); j++){
+		Plane * src_p = planes_src->at(j);
+		int segment_id 		= map_id_plane.find(src_p)->second;
+		Plane * src_p_test 	= map_id_plane.find(src_p)->first;
+		if(src_p_test != src_p || segment_id < 0){
+			segment_id = plane_segment_id_counter;
+			plane_segment_id_counter++;
+			map_id_plane.insert( make_pair(src_p,segment_id));
+			mergedPlanes.push_back(vector< pair<RGBDFrame * , Plane * > >());
+			mergedPlanes.back().push_back(make_pair(frame,src_p));	
+		}
+		printf("added planes with id: %i\n",segment_id);
+	}
 	
 	float best = -1;
 	Transformation * best_t = 0;
@@ -210,48 +233,8 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 			pose = poses.at(i-1)*t->transformationMatrix;
 			best = t->weight;
 			best_t = t;
-			
-			vector< Plane * > * planes_src = t->src->planes;
-			vector< Plane * > * planes_dst = t->dst->planes;
-			
-			for(int j = 0; j < planes_src->size(); j++){
-				for(int k = 0; k < planes_dst->size(); k++){
-					Plane * src_p = planes_src->at(j);
-					Plane * dst_p = planes_dst->at(k);
-					Matrix4f transformationmat = t->transformationMatrix;
-					float xn = transformationmat(0,0)*dst_p->normal_x+transformationmat(0,1)*dst_p->normal_y+transformationmat(0,2)*dst_p->normal_z;
-					float yn = transformationmat(1,0)*dst_p->normal_x+transformationmat(1,1)*dst_p->normal_y+transformationmat(1,2)*dst_p->normal_z;
-					float zn = transformationmat(2,0)*dst_p->normal_x+transformationmat(2,1)*dst_p->normal_y+transformationmat(2,2)*dst_p->normal_z;
-			
-					float xp = transformationmat(0,0)*dst_p->point_x+transformationmat(0,1)*dst_p->point_y+transformationmat(0,2)*dst_p->point_z+transformationmat(0,3);
-					float yp = transformationmat(1,0)*dst_p->point_x+transformationmat(1,1)*dst_p->point_y+transformationmat(1,2)*dst_p->point_z+transformationmat(1,3);
-					float zp = transformationmat(2,0)*dst_p->point_x+transformationmat(2,1)*dst_p->point_y+transformationmat(2,2)*dst_p->point_z+transformationmat(2,3);
-					
-					float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
-					float mid_diff = src_p->distance(xp,yp,zp);
-					if(normal_diff < 0.025 && fabs(mid_diff) < 0.04){
-						printf("merge planes...\n");
-						/*
-						MergedPlanes * src_mp = planeStructs.at(src_p->id)->mergedPlanes;
-						MergedPlanes * dst_mp = planeStructs.at(dst_p->id)->mergedPlanes;
-						if(src_mp != dst_mp){
-							for(unsigned int m = 0; m < dst_mp->data.size(); m++){
-								PlaneStruct * current_planeStruct = dst_mp->data.at(m);
-								current_planeStruct->mergedPlanes = src_mp;
-								src_mp->data.push_back(current_planeStruct);
-							}
-							mergedPlanes.at(dst_mp->index) = mergedPlanes.back();
-							mergedPlanes.at(dst_mp->index)->index = dst_mp->index;
-							mergedPlanes.pop_back();
-						}
-						*/
-					}
-					
-				}
-			}
 		}
 		if(t->weight > w_limit_close){transformations.push_back(t);}
-		
 	}
 	//printf("best: %f\n",best);
 	//if(best <= w_limit_close && best_t != 0){transformations.push_back(best_t);}
@@ -266,9 +249,11 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 	for(int i = 0; i < stop; i++){
 		RGBDFrame * test = frames.at(i);
 		float d = test->image_descriptor->distance(frame_desc);
+		
 		if(d<img_threshold)
 		{
-/*
+			printf("d:%f -> threshold: %f\n",d,img_threshold);
+/*	
 			map_task * current_task = new map_task;
 			current_task->src = frame;
 			current_task->dst = test;
@@ -303,6 +288,88 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 void Map3DPlanesGraphv4::addTransformation(Transformation * transformation){transformations.push_back(transformation);}
 void Map3DPlanesGraphv4::estimate(){
 	usleep(500000);
+	for(int i = 1; i < frames.size(); i++){
+		vector< Plane * > * planes_src = frames.at(i)->planes;
+		vector< Plane * > * planes_dst = frames.at(i-1)->planes;
+		for(int j = 0; j < planes_src->size(); j++){
+			Plane * src_p = planes_src->at(j);	
+			for(int k = 0; k < planes_dst->size(); k++){
+				Plane * dst_p = planes_dst->at(k);
+				Matrix4f transformationmat = Matrix4f::Identity();
+				float xn = transformationmat(0,0)*dst_p->normal_x+transformationmat(0,1)*dst_p->normal_y+transformationmat(0,2)*dst_p->normal_z;
+				float yn = transformationmat(1,0)*dst_p->normal_x+transformationmat(1,1)*dst_p->normal_y+transformationmat(1,2)*dst_p->normal_z;
+				float zn = transformationmat(2,0)*dst_p->normal_x+transformationmat(2,1)*dst_p->normal_y+transformationmat(2,2)*dst_p->normal_z;
+		
+				float xp = transformationmat(0,0)*dst_p->point_x+transformationmat(0,1)*dst_p->point_y+transformationmat(0,2)*dst_p->point_z+transformationmat(0,3);
+				float yp = transformationmat(1,0)*dst_p->point_x+transformationmat(1,1)*dst_p->point_y+transformationmat(1,2)*dst_p->point_z+transformationmat(1,3);
+				float zp = transformationmat(2,0)*dst_p->point_x+transformationmat(2,1)*dst_p->point_y+transformationmat(2,2)*dst_p->point_z+transformationmat(2,3);
+				
+				float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
+				float mid_diff = src_p->distance(xp,yp,zp);
+				//printf("... %f %f\n",normal_diff,fabs(mid_diff));
+					
+				if(normal_diff < 0.02 && fabs(mid_diff) < 0.03){
+					int src_segment_id	= map_id_plane.find(src_p)->second;
+					Plane * src_p_test	= map_id_plane.find(src_p)->first;
+					
+					int dst_segment_id	= map_id_plane.find(dst_p)->second;
+					Plane * dst_p_test	= map_id_plane.find(dst_p)->first;
+					if(src_segment_id != dst_segment_id){
+						while(mergedPlanes.at(src_segment_id).size() != 0){
+							mergedPlanes.at(dst_segment_id).push_back(mergedPlanes.at(src_segment_id).back());
+							mergedPlanes.at(src_segment_id).pop_back();
+						}
+						for(int l = 0; l < mergedPlanes.at(dst_segment_id).size(); l++){
+							pair<RGBDFrame * , Plane * > tmp_pair = mergedPlanes.at(dst_segment_id).at(l);
+							map_id_plane.find(tmp_pair.second)->second = dst_segment_id;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	for(int i = 0; i < transformations.size(); i++){
+		Transformation * t = transformations.at(i);
+		vector< Plane * > * planes_src = t->src->planes;
+		vector< Plane * > * planes_dst = t->dst->planes;
+		for(int j = 0; j < planes_src->size(); j++){
+			Plane * src_p = planes_src->at(j);	
+			for(int k = 0; k < planes_dst->size(); k++){
+				Plane * dst_p = planes_dst->at(k);
+				Matrix4f transformationmat = t->transformationMatrix;
+				float xn = transformationmat(0,0)*dst_p->normal_x+transformationmat(0,1)*dst_p->normal_y+transformationmat(0,2)*dst_p->normal_z;
+				float yn = transformationmat(1,0)*dst_p->normal_x+transformationmat(1,1)*dst_p->normal_y+transformationmat(1,2)*dst_p->normal_z;
+				float zn = transformationmat(2,0)*dst_p->normal_x+transformationmat(2,1)*dst_p->normal_y+transformationmat(2,2)*dst_p->normal_z;
+		
+				float xp = transformationmat(0,0)*dst_p->point_x+transformationmat(0,1)*dst_p->point_y+transformationmat(0,2)*dst_p->point_z+transformationmat(0,3);
+				float yp = transformationmat(1,0)*dst_p->point_x+transformationmat(1,1)*dst_p->point_y+transformationmat(1,2)*dst_p->point_z+transformationmat(1,3);
+				float zp = transformationmat(2,0)*dst_p->point_x+transformationmat(2,1)*dst_p->point_y+transformationmat(2,2)*dst_p->point_z+transformationmat(2,3);
+				
+				float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
+				float mid_diff = src_p->distance(xp,yp,zp);
+				//printf("... %f %f\n",normal_diff,fabs(mid_diff));
+					
+				if(normal_diff < 0.025 && fabs(mid_diff) < 0.04){
+					int src_segment_id	= map_id_plane.find(src_p)->second;
+					Plane * src_p_test	= map_id_plane.find(src_p)->first;
+					
+					int dst_segment_id	= map_id_plane.find(dst_p)->second;
+					Plane * dst_p_test	= map_id_plane.find(dst_p)->first;
+					if(src_segment_id != dst_segment_id){
+						while(mergedPlanes.at(src_segment_id).size() != 0){
+							mergedPlanes.at(dst_segment_id).push_back(mergedPlanes.at(src_segment_id).back());
+							mergedPlanes.at(src_segment_id).pop_back();
+						}
+						for(int l = 0; l < mergedPlanes.at(dst_segment_id).size(); l++){
+							pair<RGBDFrame * , Plane * > tmp_pair = mergedPlanes.at(dst_segment_id).at(l);
+							map_id_plane.find(tmp_pair.second)->second = dst_segment_id;
+						}
+					}
+				}
+			}
+		}
+	}
 	graphoptimizer.clear();
 	graphoptimizer.setMethod(g2o::SparseOptimizer::LevenbergMarquardt);
 	graphoptimizer.setVerbose(false);
@@ -313,6 +380,7 @@ void Map3DPlanesGraphv4::estimate(){
 	printf("estimate\n");
 	//printf("nr frames: %i nr trans: %i\n",frames.size(),transformations.size());
 	for(int i  = 0; i < frames.size(); i++){
+		frames.at(i)->showPlanes();
 		Eigen::Affine3f eigenTransform(poses.at(i));
 		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 		g2o::SE3Quat poseSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
@@ -322,41 +390,33 @@ void Map3DPlanesGraphv4::estimate(){
 		graphoptimizer.addVertex(vertexSE3);
 		frames.at(i)->g2oVertex = vertexSE3;
 		if(i == 0){vertexSE3->setFixed(true);}
-	}
-	/*
-	for(int i = 0; i < transformations_mat->size(); i++){
-		for(int j = 0; j < transformations_mat->at(i)->size(); j++){
-			Transformation * transformation = transformations_mat->at(i)->at(j);
-			printf("pointer: %d\n",(unsigned int *)transformation);
-			if(transformation != 0 && (transformation->weight >= w_limit_close))
-			{
-				Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
-				Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
-				g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
-				g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
-				printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
-				edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;//graphoptimizer.vertex(transformation->src->id);
-				edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;//graphoptimizer.vertex(transformation->dst->id);
-				edgeSE3->setMeasurement(transfoSE3.inverse());
-				edgeSE3->setInverseMeasurement(transfoSE3);
-				Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
-				mat.setIdentity(6,6);
-				edgeSE3->information() = mat;
-				graphoptimizer.addEdge(edgeSE3);
-			}
+		else{
+			Eigen::Affine3f eigenTransform(Matrix4f::Identity());
+			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
+			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
+			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
+			edgeSE3->vertices()[0] = frames.at(i)->g2oVertex;
+			edgeSE3->vertices()[1] = frames.at(i-1)->g2oVertex;
+			edgeSE3->setMeasurement(transfoSE3.inverse());
+			edgeSE3->setInverseMeasurement(transfoSE3);
+			Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
+			mat.setIdentity(6,6);
+			edgeSE3->information() = mat*0.01f;
+			graphoptimizer.addEdge(edgeSE3);
 		}
 	}
-	*/
 	for(int i  = 0; i < transformations.size(); i++){
 		Transformation * transformation = transformations.at(i);
-		printf("pointer: %d\n",(unsigned int *)transformation);
+		//printf("pointer: %d\n",(unsigned int *)transformation);
 		if(transformation != 0 && (transformation->weight >= w_limit_close))
 		{
+			printf("transformation: %i %i\n",transformation->src->id,transformation->dst->id);
+			transformation->show();
 			Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
 			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
 			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
-			printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
+			//printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
 			edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;//graphoptimizer.vertex(transformation->src->id);
 			edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;//graphoptimizer.vertex(transformation->dst->id);
 			edgeSE3->setMeasurement(transfoSE3.inverse());
@@ -365,6 +425,27 @@ void Map3DPlanesGraphv4::estimate(){
 			mat.setIdentity(6,6);
 			edgeSE3->information() = mat;
 			graphoptimizer.addEdge(edgeSE3);
+		}
+	}
+	
+	for(int i = 0; i < mergedPlanes.size(); i++){
+		
+		if(mergedPlanes.at(i).size() >= 2){
+			printf("size:%i->%i\n",i,mergedPlanes.at(i).size());
+			g2o::VertexPlane * vertexPlane2 = new g2o::VertexPlane();
+			vertexPlane2->setId(200000+i);
+			for(int j = 0; j < mergedPlanes.at(i).size(); j++){
+				pair<RGBDFrame * , Plane * > tmp_pair = mergedPlanes.at(i).at(j);
+				g2o::EdgeSe3Plane2 * edgeSe3Plane2 = new g2o::EdgeSe3Plane2();
+
+				edgeSe3Plane2->vertices()[0] = tmp_pair.first->g2oVertex;
+				edgeSe3Plane2->vertices()[1] = vertexPlane2;
+				Matrix4d informationMat = Matrix4d::Identity();
+				informationMat(3,3) = 0.1;
+				edgeSe3Plane2->information() = informationMat;
+				edgeSe3Plane2->setMeasurement(tmp_pair.second);
+				graphoptimizer.addEdge(edgeSe3Plane2);
+			}
 		}
 	}
 	/*
