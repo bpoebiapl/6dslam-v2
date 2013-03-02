@@ -259,11 +259,11 @@ int main(int argc, char **argv)
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	aick->max_points 			= 300;
+	aick->max_points 			= 200;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
 	aick->nr_iter				= 10;
-	aick->shrinking				= 0.45;
+	aick->shrinking				= 0.4;
 	
 	BowAICK * bowaick				= new BowAICK();
 	bowaick->max_points				= 200;
@@ -298,10 +298,10 @@ int main(int argc, char **argv)
 
 
 	map->matcher = aick;//new DistanceNetMatcherv3(1,100, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
-	map->loopclosure_matcher = bowaick;
-	//map->segmentation = new RGBDSegmentationBase();
+	map->loopclosure_matcher = aick;
+	map->segmentation = new RGBDSegmentationBase();
 	//map->segmentation = new RGBDSegmentationTest();
-	map->segmentation = new RGBDSegmentationPCL();
+	//map->segmentation = new RGBDSegmentationPCL();
 	//map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib0;
 	map->extractor = surf;
@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 	
 	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/45743f89-6014-48bc-937c-0acfbae19d93",1, 100,calib0);
 	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",001, 5,calib0);
-	all_input = getFrameInput("/home/johane/alper_office",001, 1226,calib0);
+	//all_input = getFrameInput("/home/johane/alper_office",001, 1226,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",1, 1500,calib0);
 	//all_input = getFrameInput("/home/johane/LibraryRecsForJohan/f6ab52d2-57c5-4ced-a53b-42a34dacc7a2",1000, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 500,calib0);
@@ -318,6 +318,7 @@ int main(int argc, char **argv)
 
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1, 4000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
+	all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 50,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
@@ -387,7 +388,7 @@ int main(int argc, char **argv)
 	recalc_rendering = true;
 	
 
-	for(int i = 0; i < 9; i++){
+	for(int i = 0; i < 1; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, start_test_thread, NULL);
 	}

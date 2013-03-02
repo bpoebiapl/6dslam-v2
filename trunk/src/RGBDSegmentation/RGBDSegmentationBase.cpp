@@ -5,6 +5,10 @@ using namespace std;
 RGBDSegmentationBase::RGBDSegmentationBase(){}
 RGBDSegmentationBase::~RGBDSegmentationBase(){}
 vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * depth_img){
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	vector<Plane * > * planes = new vector<Plane * >();
+	
 
 	int width = rgb_img->width;
 	int height = rgb_img->height;
@@ -23,9 +27,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 		segment_id[i] = new int[height];
 	}
 
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	vector<Plane * > * planes = new vector<Plane * >();
+
 	
 	float d_scaleing	= calibration->ds/calibration->scale;
 	float centerX		= calibration->cx;
@@ -66,6 +68,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	}
 
 	float gray_mul = 1.0f/15000.0f;
+	float z_mul = 0.01;
 	for(int i = 1; i < width-1; i++){
 		for(int j = 1; j < height-1; j++){
 			float zw_edge = 0;
@@ -80,11 +83,178 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 			int gw_edge = (gray[i-1][j+1]+2*gray[i][j+1]+gray[i+1][j+1])-(gray[i-1][j-1]+2*gray[i][j-1]+gray[i+1][j-1]);
 			int gh_edge = (gray[i+1][j+1]+2*gray[i+1][j]+gray[i+1][j-1])-(gray[i-1][j+1]+2*gray[i-1][j]+gray[i-1][j-1]);
 			
-			edge[i][j] = float(gw_edge*gw_edge+gh_edge*gh_edge)*gray_mul + (zw_edge*zw_edge+zh_edge*zh_edge)*0.01;
+			edge[i][j] = float(gw_edge*gw_edge+gh_edge*gh_edge)*gray_mul + (zw_edge*zw_edge+zh_edge*zh_edge)*z_mul;
 		}
 	}
+	
+	int step = 4;
+	int size = 5;
+	IplImage * img_clone;
+	//while(true){
+	float best_score = 0;
+	float best_score_scale = 0;
+	Plane * best_plane = 0;
+	
+	int counter = 0;
+	for(int i = step; i <= width-step; i+=step){
+		for(int j = step; j <= height-step; j+=step){
+			//IplImage * img_clone;
+			//img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
+			//cvCopy( rgb_img, img_clone, NULL );
+			//cvRectangle(img_clone,cvPoint(i-size, j-size),cvPoint(i+size, j+size),cvScalar(255, 0, 0, 0),-1, 8, 0);
+			//char * cdata 			= (char *)(img_clone->imageData);
+			
+			
+			counter++;
+			vector<float > * seg_x = new vector<float >();
+			vector<float > * seg_y = new vector<float >();
+			vector<float > * seg_z = new vector<float >();
+			
+			seg_x->push_back(x[i][j]);
+			seg_y->push_back(y[i][j]);
+			seg_z->push_back(z[i][j]);
+			
+			int interval = 5;
+			float thresh = 4;
+			int combinations = 1;
+			float score = 1;
+			for(int ik = -combinations; ik <= combinations; ik++){
+				for(int jk = -combinations; jk <= combinations; jk++){
+					if((ik!=0)||(jk!=0)){
+						int k = 0;
+						float sum = 0;
+						while(true){
+							k++;
+							int w = i+ik*k;int h=j+jk*k;
+							if(w > interval && w < width-interval && h > interval && h < height-interval){
+								sum 		+= edge[w][h];
+								int w_internal = w-ik*interval;
+								int h_internal = h-jk*interval;
+								if(k > interval){sum -= edge[w_internal][h_internal];}
+								if(sum<thresh && z[w][h]!=0){
+									//int ind = width*h+w;
+									//cdata[3*ind+0] = 255;
+									//cdata[3*ind+1] = 0;
+									//cdata[3*ind+2] = 255;
+									//seg_x->push_back(x[w-ik*interval][h-jk*interval]);
+									//seg_y->push_back(y[w-ik*interval][h-jk*interval]);
+									//seg_z->push_back(z[w-ik*interval][h-jk*interval]);
+								}else{
+									seg_x->push_back(x[w_internal][h_internal]);
+									seg_y->push_back(y[w_internal][h_internal]);
+									seg_z->push_back(z[w_internal][h_internal]);
+									break;
+								}
+							}else{break;}
+						}
+						score*=k;
+					}
+				}
+			}
 
+			if(score > best_score){
+				Plane * p = new Plane(seg_x,seg_y,seg_z,0,0);
+				float score_scale = score / (p->weight+0.000000001);
+				if(best_score_scale < score_scale){
+					best_score = score;
+					best_score_scale = score_scale;
+					best_plane = p;
+				}else{delete p;}
+			}else{
+				delete seg_x;
+				delete seg_y;
+				delete seg_z;
+			}		
+			//cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+			//cvShowImage("segments", img_clone);
+			//cvWaitKey(0);
+			//cvReleaseImage( &img_clone );
+		}
+	}
+	float threshold_now = 0.01f;
+	for(int improvement = 0; improvement < 55; improvement++){
+		img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
+		cvCopy( rgb_img, img_clone, NULL );
+		char * cdata 			= (char *)(img_clone->imageData);
+		float normal_x = best_plane->normal_x;
+		float normal_y = best_plane->normal_y;
+		float normal_z = best_plane->normal_z;
+		float point_x = best_plane->point_x;
+		float point_y = best_plane->point_y;
+		float point_z = best_plane->point_z;
+	
+		vector<float > * s_x = new vector<float >();
+		vector<float > * s_y = new vector<float >();
+		vector<float > * s_z = new vector<float >();
+			
+		printf("threshold: %f\n",threshold_now);
+		vector<float > d_vec;
+		float d_mean = 0;
+		for(int i = step; i <= width-step; i+=step){
+			for(int j = step; j <= height-step; j+=step){
+				float d = fabs(normal_x*(point_x-x[i][j]) + normal_y*(point_y-y[i][j]) + normal_z*(point_z-z[i][j]));
+				if(d < threshold_now){
+					d_mean += d;
+					d_vec.push_back(d);
+					s_x->push_back(x[i][j]);
+					s_y->push_back(y[i][j]);
+					s_z->push_back(z[i][j]);
+					//z[i][j] = 0;
+					cvRectangle(img_clone,cvPoint(i-step/2, j-step/2),cvPoint(i+step/2, j+step/2),cvScalar(255, 0, 0, 0),-1, 8, 0);
+				}
+			}
+		}
 
+		float std_div = 0;
+		for(int i = 0; i < d_vec.size(); i++){std_div += d_vec.at(i)*d_vec.at(i);}
+		std_div = sqrt(std_div/float(d_vec.size()));
+
+		threshold_now = std_div*4;
+		Plane * best_plane_update = new Plane(s_x,s_y,s_z,0,0);
+		delete s_x;
+		delete s_y;
+		delete s_z;
+		normal_x = best_plane_update->normal_x;
+		normal_y = best_plane_update->normal_y;
+		if(best_plane_update->normal_z > 0){best_plane_update->normal_z*=-1;}
+		normal_z = best_plane_update->normal_z;
+		point_x = best_plane_update->point_x;
+		point_y = best_plane_update->point_y;
+		point_z = best_plane_update->point_z;
+		delete best_plane;
+		best_plane = best_plane_update;
+		printf("eigenvalues: %f %f %f\n",best_plane->S(0),best_plane->S(1),best_plane->S(2));
+		cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+		cvShowImage("segments", img_clone);
+		cvWaitKey(0);
+		cvReleaseImage( &img_clone );
+	}
+	
+	/*
+	int matches = 0;
+	for(int i = step; i <= width-step; i+=step){
+		for(int j = step; j <= height-step; j+=step){
+			if(z[i][j] != 0 && fabs(normal_x*(point_x-x[i][j]) + normal_y*(point_y-y[i][j]) + normal_z*(point_z-z[i][j])) < 0.02){
+				z[i][j] = 0;
+				matches++;
+				//cvRectangle(img_clone,cvPoint(i-step/4, j-step/4),cvPoint(i+step/4, j+step/4),cvScalar(255, 0, 0, 0),-1, 8, 0);
+			}
+		}
+	}
+	*/
+
+	/*
+	delete best_plane;
+	if( matches * 10 > counter){
+		printf("good plane found\n");
+		planes->push_back(best_plane_update);
+	}else{
+		delete best_plane_update;
+		break;
+	}
+	*/
+
+/*
 	int current_todo = 0;
 	int max_todo = 0;
 	int * w_todo = new int[width*height];
@@ -153,12 +323,12 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 						delete s_z;
 					}
 					
-					/*
-					IplImage * img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
-					cvCopy( rgb_img, img_clone, NULL );
-					cvRectangle(img_clone,cvPoint(i-size, j-size),cvPoint(i+size, j+size),cvScalar(255, 0, 0, 0),1, 8, 0);
-					char * data 			= (char *)(img_clone->imageData);
-					*/
+					
+					//IplImage * img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
+					//cvCopy( rgb_img, img_clone, NULL );
+					//cvRectangle(img_clone,cvPoint(i-size, j-size),cvPoint(i+size, j+size),cvScalar(255, 0, 0, 0),1, 8, 0);
+					//char * data 			= (char *)(img_clone->imageData);
+					
 					float normal_x = pl->normal_x;
 					float normal_y = pl->normal_y;
 					float normal_z = pl->normal_z;
@@ -169,20 +339,20 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 						for(int jj = 0; jj < height; jj++){
 							if(z[ii][jj] != 0 && fabs(normal_x*(point_x-x[ii][jj]) + normal_y*(point_y-y[ii][jj]) + normal_z*(point_z-z[ii][jj])) < 0.015){
 								z[ii][jj] = 0;
-								/*
-								data[(jj * width + ii)*3+0] = 255;
-								data[(jj * width + ii)*3+1] = 0;
-								data[(jj * width + ii)*3+2] = 255;
-								*/
+								
+								//data[(jj * width + ii)*3+0] = 255;
+								//data[(jj * width + ii)*3+1] = 0;
+								//data[(jj * width + ii)*3+2] = 255;
+								
 							}
 						}
 					}
-					/*
-					cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
-					cvShowImage("segments", img_clone);
-					cvWaitKey(0);
-					cvReleaseImage( &img_clone );
-					*/
+					
+					//cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+					//cvShowImage("segments", img_clone);
+					//cvWaitKey(0);
+					//cvReleaseImage( &img_clone );
+					
 					delete pl;
 					
 				}
@@ -224,7 +394,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	cvShowImage("segments", img);
 	cvWaitKey(0);
 	//cvReleaseImage( &img );
-	
+*/	
 /*
 	gettimeofday(&start, NULL);
 	int step = 5;
@@ -375,6 +545,22 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 
 	}
 */
+
+	for(int i = 0; i < width; i++){
+		delete[] x[i];
+		delete[] y[i];
+		delete[] z[i];
+		delete[] gray[i];
+		delete[] edge[i];
+		delete[] segment_id[i];
+	}
+	delete[] x;
+	delete[] y;
+	delete[] z;
+	delete[] gray;
+	delete[] edge;
+	delete[] segment_id;
+	
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	printf("Segment cost: %f\n",time);

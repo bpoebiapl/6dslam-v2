@@ -48,13 +48,17 @@ namespace g2o {
 		double tmp_nz = rx*mat(2,0) + ry*mat(2,1) + rz*mat(2,2);
 		
 		double tmp_d = rx*(px-x) + ry*(py-y) + rz*(pz-z);
+		float diff = fabs(tmp_d-d);
+		diff-= 0.015f;
+		if(diff < 0){diff = 0;}
+		diff = diff*diff*diff;
 		
 		//if((v2->id == 0) && (rand()%100 == 0)){printf("%i [%.5f,%.5f]\n",v2->id,tmp_d,d);}
 		
 		_error[0] = 10000.0f*fabs(tmp_nx-nx);
 		_error[1] = 10000.0f*fabs(tmp_ny-ny);
 		_error[2] = 10000.0f*fabs(tmp_nz-nz);
-		_error[3] = 1*fabs(tmp_d-d);
+		_error[3] = diff;
     }
 
 	void setMeasurement(Plane * p){

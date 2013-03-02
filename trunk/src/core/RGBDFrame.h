@@ -80,6 +80,8 @@ class RGBDFrame
 	void init_jointcloudnormals(IplImage* rgb_img, IplImage* depth_img);
 	void init_segmentation(IplImage* rgb_img,IplImage* depth_img);
 	void init_filter();
+	
+	void showPlanes();
 	RGBDFrame();
 	RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegmentation * segmenter);
 	//RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud);

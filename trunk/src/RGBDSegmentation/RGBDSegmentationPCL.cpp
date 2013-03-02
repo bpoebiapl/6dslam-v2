@@ -65,7 +65,7 @@ vector<Plane * > * RGBDSegmentationPCL::segment(IplImage * rgb_img,IplImage * de
 	pass.setFilterLimits	(0.00001, 100000);
 	pass.filter				(*tmp_cloud);
 	
-	const float voxel_grid_size = 0.002f;//12f;
+	const float voxel_grid_size = 0.005f;//12f;
 	pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
 	vox_grid.setInputCloud (tmp_cloud);
 	vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
@@ -85,31 +85,43 @@ vector<Plane * > * RGBDSegmentationPCL::segment(IplImage * rgb_img,IplImage * de
 	seg.setModelType (pcl::SACMODEL_PLANE);
 	seg.setMethodType (pcl::SAC_RANSAC);
 	seg.setDistanceThreshold (0.01);
-
-	seg.setInputCloud (tempCloud->makeShared());//cloud.makeShared ());
-	seg.segment (*inliers, *coefficients);
-
-	if (inliers->indices.size () == 0){
-		PCL_ERROR ("Could not estimate a planar model for the given dataset.");
-		return planes;
-	}
-
-	std::cerr << "Model coefficients: " << coefficients->values[0] << " " << coefficients->values[1] << " " << coefficients->values[2] << " " << coefficients->values[3] << std::endl;
-	std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-
-	Plane * p = new Plane();
-	p->normal_x = coefficients->values[0];
-	p->normal_y = coefficients->values[1];
-	p->normal_z = coefficients->values[2];
-
-	p->point_x = coefficients->values[0]*coefficients->values[3];
-	p->point_y = coefficients->values[1]*coefficients->values[3];
-	p->point_z = coefficients->values[2]*coefficients->values[3];
+	while(true){
+		pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud2 (new pcl::PointCloud<pcl::PointXYZ>); 
+		pass.setInputCloud		(tempCloud);
+		pass.filter				(*tempCloud2);
 	
-	planes->push_back(p);
+	
+		seg.setInputCloud (tempCloud2->makeShared());//cloud.makeShared ());
+		seg.segment (*inliers, *coefficients);
 
+		if (inliers->indices.size () == 0){
+			PCL_ERROR ("Could not estimate a planar model for the given dataset.");
+			return planes;
+		}
+
+		//std::cerr << "Model coefficients: " << coefficients->values[0] << " " << coefficients->values[1] << " " << coefficients->values[2] << " " << coefficients->values[3] << std::endl;
+		//std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
+		for (size_t i = 0; i < inliers->indices.size (); ++i){
+			int indi = inliers->indices[i];
+			tempCloud2->points[inliers->indices[i]].z = 0;
+		}
+	  
+		if(inliers->indices.size() > 5000){
+			Plane * p = new Plane();
+			p->normal_x = coefficients->values[0];
+			p->normal_y = coefficients->values[1];
+			p->normal_z = coefficients->values[2];
+			p->point_x = coefficients->values[0]*coefficients->values[3];
+			p->point_y = coefficients->values[1]*coefficients->values[3];
+			p->point_z = coefficients->values[2]*coefficients->values[3];
+
+			planes->push_back(p);
+			tempCloud = tempCloud2;
+		}else{break;}
+	}
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	printf("planes->size() = %i\n",planes->size());
 	printf("Segment cost: %f\n",time);
 	return planes;
 }
