@@ -229,7 +229,7 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 		*/
 		
 		Transformation * t = fmclose->getTransformation(frame, frames.at(i-1));
-		if(t->weight > best){
+		if(t->weight > 0){
 			pose = poses.at(i-1)*t->transformationMatrix;
 			best = t->weight;
 			best_t = t;
