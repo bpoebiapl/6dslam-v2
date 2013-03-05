@@ -320,7 +320,7 @@ int main(int argc, char **argv)
 
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1, 4000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
-	all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 50,calib0);
+	all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 5,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
