@@ -285,14 +285,68 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 	
 	//while(map_tasks_to_do() > 0){usleep(1000);}
 }
+
+vector< pair < int , int > > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src, RGBDFrame * dst, Eigen::Matrix4f trans){
+	
+	Eigen::Matrix4f trans_inverse = trans.inverse();
+	vector< pair < int , int > > * output = new vector< pair < int , int > >();
+
+	IplImage* src_rgb_img 	= cvLoadImage(src->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	IplImage* src_depth_img = cvLoadImage(src->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	
+	IplImage* dst_rgb_img 	= cvLoadImage(dst->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	IplImage* dst_depth_img = cvLoadImage(dst->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+	
+	vector< Plane * > * planes_src = src->planes;
+	vector< Plane * > * planes_dst = dst->planes;
+	
+	printf("matches planes for %i and %i...\n",src->id,dst->id);
+	for(int j = 0; j < planes_src->size(); j++){
+		Plane * src_p = planes_src->at(j);
+		Plane * src_p_trans = new Plane();
+		src_p_trans->normal_x = trans(0,0)*src_p->normal_x+trans(0,1)*src_p->normal_y+trans(0,2)*src_p->normal_z;
+		src_p_trans->normal_y = trans(1,0)*src_p->normal_x+trans(1,1)*src_p->normal_y+trans(1,2)*src_p->normal_z;
+		src_p_trans->normal_z = trans(2,0)*src_p->normal_x+trans(2,1)*src_p->normal_y+trans(2,2)*src_p->normal_z;
+		
+		src_p_trans->point_x  = trans(0,0)*src_p->point_x+trans(0,1)*src_p->point_y+trans(0,2)*src_p->point_z+trans(0,3);
+		src_p_trans->point_y  = trans(1,0)*src_p->point_x+trans(1,1)*src_p->point_y+trans(1,2)*src_p->point_z+trans(1,3);
+		src_p_trans->point_z  = trans(2,0)*src_p->point_x+trans(2,1)*src_p->point_y+trans(2,2)*src_p->point_z+trans(2,3);
+		
+		for(int k = 0; k < planes_dst->size(); k++){
+			Plane * dst_p = planes_dst->at(k);
+			Plane * dst_p_trans = new Plane();
+			dst_p_trans->normal_x = trans_inverse(0,0)*dst_p->normal_x+trans_inverse(0,1)*dst_p->normal_y+trans_inverse(0,2)*dst_p->normal_z;
+			dst_p_trans->normal_y = trans_inverse(1,0)*dst_p->normal_x+trans_inverse(1,1)*dst_p->normal_y+trans_inverse(1,2)*dst_p->normal_z;
+			dst_p_trans->normal_z = trans_inverse(2,0)*dst_p->normal_x+trans_inverse(2,1)*dst_p->normal_y+trans_inverse(2,2)*dst_p->normal_z;
+		
+			dst_p_trans->normal_x = trans_inverse(0,0)*dst_p->point_x+trans_inverse(0,1)*dst_p->point_y+trans_inverse(0,2)*dst_p->point_z+trans_inverse(0,3);
+			dst_p_trans->normal_y = trans_inverse(1,0)*dst_p->point_x+trans_inverse(1,1)*dst_p->point_y+trans_inverse(1,2)*dst_p->point_z+trans_inverse(1,3);
+			dst_p_trans->normal_z = trans_inverse(2,0)*dst_p->point_x+trans_inverse(2,1)*dst_p->point_y+trans_inverse(2,2)*dst_p->point_z+trans_inverse(2,3);
+			if(src_p_trans->angle(dst_p) <  0.01){
+				printf("%i %i angle: %f and %f\n",j,k,src_p_trans->angle(dst_p),src_p->angle(dst_p));
+			}
+		}
+	}
+	
+	cvReleaseImage( &src_rgb_img );
+	cvReleaseImage( &src_depth_img );
+	
+	cvReleaseImage( &dst_rgb_img );
+	cvReleaseImage( &dst_depth_img );
+	
+	return output;
+}
+
 void Map3DPlanesGraphv4::addTransformation(Transformation * transformation){transformations.push_back(transformation);}
 void Map3DPlanesGraphv4::estimate(){
 	usleep(500000);
 	for(int i = 1; i < frames.size(); i++){
+		match_planes(frames.at(i),frames.at(i-1),Matrix4f::Identity());
 		vector< Plane * > * planes_src = frames.at(i)->planes;
 		vector< Plane * > * planes_dst = frames.at(i-1)->planes;
+		//frames.at(i-1)->showPlanes();
 		for(int j = 0; j < planes_src->size(); j++){
-			Plane * src_p = planes_src->at(j);	
+			Plane * src_p = planes_src->at(j);
 			for(int k = 0; k < planes_dst->size(); k++){
 				Plane * dst_p = planes_dst->at(k);
 				Matrix4f transformationmat = Matrix4f::Identity();
@@ -306,9 +360,10 @@ void Map3DPlanesGraphv4::estimate(){
 				
 				float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
 				float mid_diff = src_p->distance(xp,yp,zp);
-				//printf("... %f %f\n",normal_diff,fabs(mid_diff));
+				printf("... %f %f\n",normal_diff,fabs(mid_diff));
 					
-				if(normal_diff < 0.02 && fabs(mid_diff) < 0.03){
+				if(normal_diff < 0.005 && fabs(mid_diff) < 0.05){
+					printf("match %i to %i\n",j,k);
 					int src_segment_id	= map_id_plane.find(src_p)->second;
 					Plane * src_p_test	= map_id_plane.find(src_p)->first;
 					
@@ -331,13 +386,20 @@ void Map3DPlanesGraphv4::estimate(){
 	
 	for(int i = 0; i < transformations.size(); i++){
 		Transformation * t = transformations.at(i);
+		//t->show();
+		//t->src->showPlanes();
+		//t->dst->showPlanes();
+		printf("Transformation: %i <--> %i\n",t->src->id,t->dst->id);
+		match_planes(t->src,t->dst,t->transformationMatrix);
+		
 		vector< Plane * > * planes_src = t->src->planes;
 		vector< Plane * > * planes_dst = t->dst->planes;
 		for(int j = 0; j < planes_src->size(); j++){
 			Plane * src_p = planes_src->at(j);	
 			for(int k = 0; k < planes_dst->size(); k++){
 				Plane * dst_p = planes_dst->at(k);
-				Matrix4f transformationmat = t->transformationMatrix;
+				Matrix4f transformationmat = t->transformationMatrix.inverse();
+				
 				float xn = transformationmat(0,0)*dst_p->normal_x+transformationmat(0,1)*dst_p->normal_y+transformationmat(0,2)*dst_p->normal_z;
 				float yn = transformationmat(1,0)*dst_p->normal_x+transformationmat(1,1)*dst_p->normal_y+transformationmat(1,2)*dst_p->normal_z;
 				float zn = transformationmat(2,0)*dst_p->normal_x+transformationmat(2,1)*dst_p->normal_y+transformationmat(2,2)*dst_p->normal_z;
@@ -348,9 +410,11 @@ void Map3DPlanesGraphv4::estimate(){
 				
 				float normal_diff = 1-(src_p->normal_x*xn + src_p->normal_y*yn + src_p->normal_z*zn);
 				float mid_diff = src_p->distance(xp,yp,zp);
-				//printf("... %f %f\n",normal_diff,fabs(mid_diff));
-					
-				if(normal_diff < 0.025 && fabs(mid_diff) < 0.04){
+				
+				
+				
+				if(normal_diff < 0.001 && fabs(mid_diff) < 0.005){
+					printf("match: %i %i -> %f %f\n",j,k,normal_diff,fabs(mid_diff));
 					int src_segment_id	= map_id_plane.find(src_p)->second;
 					Plane * src_p_test	= map_id_plane.find(src_p)->first;
 					
@@ -366,6 +430,8 @@ void Map3DPlanesGraphv4::estimate(){
 							map_id_plane.find(tmp_pair.second)->second = dst_segment_id;
 						}
 					}
+				}else{
+					printf("not match: %i %i -> %f %f\n",j,k,normal_diff,fabs(mid_diff));
 				}
 			}
 		}
@@ -380,7 +446,7 @@ void Map3DPlanesGraphv4::estimate(){
 	printf("estimate\n");
 	//printf("nr frames: %i nr trans: %i\n",frames.size(),transformations.size());
 	for(int i  = 0; i < frames.size(); i++){
-		frames.at(i)->showPlanes();
+		//frames.at(i)->showPlanes();
 		Eigen::Affine3f eigenTransform(poses.at(i));
 		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 		g2o::SE3Quat poseSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
@@ -389,8 +455,9 @@ void Map3DPlanesGraphv4::estimate(){
 		vertexSE3->estimate() = poseSE3;
 		graphoptimizer.addVertex(vertexSE3);
 		frames.at(i)->g2oVertex = vertexSE3;
-		if(i == 0){vertexSE3->setFixed(true);}
-		else{
+		if(i == 0){
+			//vertexSE3->setFixed(true);
+		}else{
 			Eigen::Affine3f eigenTransform(Matrix4f::Identity());
 			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
@@ -411,14 +478,13 @@ void Map3DPlanesGraphv4::estimate(){
 		if(transformation != 0 && (transformation->weight >= w_limit_close))
 		{
 			printf("transformation: %i %i\n",transformation->src->id,transformation->dst->id);
-			transformation->show();
+			//transformation->show();
 			Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
 			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
 			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
 			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
-			//printf("crash: %i %i\n",transformation->src->id,transformation->dst->id);
-			edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;//graphoptimizer.vertex(transformation->src->id);
-			edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;//graphoptimizer.vertex(transformation->dst->id);
+			edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;
+			edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;
 			edgeSE3->setMeasurement(transfoSE3.inverse());
 			edgeSE3->setInverseMeasurement(transfoSE3);
 			Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
@@ -434,36 +500,37 @@ void Map3DPlanesGraphv4::estimate(){
 			printf("size:%i->%i\n",i,mergedPlanes.at(i).size());
 			g2o::VertexPlane * vertexPlane2 = new g2o::VertexPlane();
 			vertexPlane2->setId(200000+i);
+			graphoptimizer.addVertex(vertexPlane2);
+		
 			for(int j = 0; j < mergedPlanes.at(i).size(); j++){
 				pair<RGBDFrame * , Plane * > tmp_pair = mergedPlanes.at(i).at(j);
+				int id = tmp_pair.first->id;
+				printf("Frame id: %i\n",id);
+				if(j == 0){
+					
+					Eigen::Matrix4f mat = poses.at(id);
+					Plane * current_p = tmp_pair.second;
+					vertexPlane2->rx = current_p->normal_x*mat(0,0) + current_p->normal_y*mat(0,1) + current_p->normal_z*mat(0,2);
+					vertexPlane2->ry = current_p->normal_x*mat(1,0) + current_p->normal_y*mat(1,1) + current_p->normal_z*mat(1,2);
+					vertexPlane2->rz = current_p->normal_x*mat(2,0) + current_p->normal_y*mat(2,1) + current_p->normal_z*mat(2,2);
+					//vertexPlane2->d	 = current_p->d;//*mat(2,0) + current_p->normal_y*mat(2,1) + current_p->normal_z*mat(2,2);
+					//vertexPlane2->d	 = current_p->d;//*mat(2,0) + current_p->normal_y*mat(2,1) + current_p->normal_z*mat(2,2);
+				}
 				g2o::EdgeSe3Plane2 * edgeSe3Plane2 = new g2o::EdgeSe3Plane2();
 
 				edgeSe3Plane2->vertices()[0] = tmp_pair.first->g2oVertex;
 				edgeSe3Plane2->vertices()[1] = vertexPlane2;
 				Matrix4d informationMat = Matrix4d::Identity();
-				informationMat(3,3) = 0.1;
+				informationMat(3,3) = 0.0;
+				informationMat*=0.0001f;
 				edgeSe3Plane2->information() = informationMat;
 				edgeSe3Plane2->setMeasurement(tmp_pair.second);
-				graphoptimizer.addEdge(edgeSe3Plane2);
+				//graphoptimizer.addEdge(edgeSe3Plane2);
+				//printf("added edge\n");
 			}
 		}
 	}
-	/*
-	for(int i  = 1; i < poses.size(); i++){
-		Eigen::Affine3f eigenTransform(Eigen::Matrix4f::Identity());
-		Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
-		g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
-		g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;	
-		edgeSE3->vertices()[0] = graphoptimizer.vertex(i-1);
-		edgeSE3->vertices()[1] = graphoptimizer.vertex(i);
-		edgeSE3->setMeasurement(transfoSE3.inverse());
-		edgeSE3->setInverseMeasurement(transfoSE3);
-		Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
-		mat.setIdentity(6,6);
-		edgeSE3->information() = mat*smoothing;
-		graphoptimizer.addEdge(edgeSE3);
-	}
-	*/
+	
 	graphoptimizer.initializeOptimization();
 	graphoptimizer.setVerbose(true);
 	graphoptimizer.optimize(estimateIter);
@@ -476,127 +543,6 @@ void Map3DPlanesGraphv4::estimate(){
 }
 void Map3DPlanesGraphv4::setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view){viewer = view;}
 
-//bool goToNext = false;
-//void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,void* viewer_void){goToNext = true;}
-/*
-void Map3DPlanesGraphv4::visualize(){
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-	if(!render_full){
-		cloud->width    = poses.size();
-		cloud->height   = 1;
-		cloud->points.resize (cloud->width);
-		cloud->width = 0;
-		for(int i = 0; i < poses.size(); i+=1){
-			int randr = 0;rand()%256;
-			int randg = 255;rand()%256;
-			int randb = 0;rand()%256;
-			Eigen::Matrix4f m1 = poses.at(i);
-			cloud->points[cloud->width].x = m1(0,3);
-			cloud->points[cloud->width].y = m1(1,3);
-			cloud->points[cloud->width].z = m1(2,3);
-			printf("%f %f %f\n",cloud->points[cloud->width].x,cloud->points[cloud->width].y,cloud->points[cloud->width].z);
-			cloud->points[cloud->width].r = randr;
-			cloud->points[cloud->width].g = randg;
-			cloud->points[cloud->width].b = randb;
-			cloud->width++;
-		}
-	}else{
-		int step = poses.size()/200;
-		if(step<1){step = 1;}
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-		tmpcloud->width    = 640*480;
-		tmpcloud->height   = 1;
-		tmpcloud->points.resize (tmpcloud->width);
-	
-		cloud->width    = 0;
-		cloud->height   = 1;
-		//cloud->points.resize (640*480*200);
-	
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud2 (new pcl::PointCloud<pcl::PointXYZRGB>);
-		for(int i = 0; i < frames.size(); i+=step){
-			RGBDFrame * frame = frames.at(i);
-			tmpcloud->width = 0;
-			IplImage* rgb_img 	= cvLoadImage(frame->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
-			IplImage* depth_img = cvLoadImage(frame->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
-		
-			float d_scaleing	= frame->input->calibration->ds/frame->input->calibration->scale;
-			float centerX		= frame->input->calibration->cx;
-			float centerY		= frame->input->calibration->cy;
-			float invFocalX		= 1.0f/frame->input->calibration->fx;
-			float invFocalY		= 1.0f/frame->input->calibration->fy;
-		
-			char * rgb_data		= (char *)rgb_img->imageData;
-			unsigned short * depth_data	= (unsigned short *)depth_img->imageData;
-		
-			int pixelstep = 10;
-			for(int w = pixelstep; w < 640; w+=pixelstep){
-				for(int h = pixelstep; h < 480; h+=pixelstep){
-					int ind = 640*h+w;
-					float x = 0;
-					float y = 0;
-					float z = float(depth_data[ind]) * d_scaleing;
-				
-					int r = char(rgb_data[3*ind+2]);
-					int g = char(rgb_data[3*ind+1]);
-					int b = char(rgb_data[3*ind+0]);
-				
-					if(r < 0){r = 255+r;}
-					if(g < 0){g = 255+g;}
-					if(b < 0){b = 255+b;}
-
-					if(z > 0){
-						x = (w - centerX) * z * invFocalX;
-					   	y = (h - centerY) * z * invFocalY;
-					   	
-					   	tmpcloud->points[tmpcloud->width].x = x;
-						tmpcloud->points[tmpcloud->width].y = y;
-						tmpcloud->points[tmpcloud->width].z = z;
-						tmpcloud->points[tmpcloud->width].r = float(r);
-						tmpcloud->points[tmpcloud->width].g = float(g);
-						tmpcloud->points[tmpcloud->width].b = float(b);
-						tmpcloud->width++;
-					}
-				}
-			}
-		
-			cvReleaseImage( &rgb_img );
-			cvReleaseImage( &depth_img );
-		
-			pcl::transformPointCloud (*tmpcloud, *tmpcloud2, poses.at(i));
-		
-			cloud->points.resize (cloud->width+tmpcloud2->width);
-		
-			for(int j = 0; j < tmpcloud2->width*tmpcloud2->height; j++)
-			{
-				cloud->points[cloud->width].x = tmpcloud2->points[j].x;
-				cloud->points[cloud->width].y = tmpcloud2->points[j].y;
-				cloud->points[cloud->width].z = tmpcloud2->points[j].z;
-				cloud->points[cloud->width].r = tmpcloud2->points[j].r;
-				cloud->points[cloud->width].g = tmpcloud2->points[j].g;
-				cloud->points[cloud->width].b = tmpcloud2->points[j].b;
-				cloud->width++;
-			}
-		}
-	}
-	//viewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-	viewer->removePointCloud("sample cloud");
-	viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-	
-	usleep(100);
-	show = true;
-	while (show){
-		viewer->spinOnce (100);
-		//boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-		//int key = cvWaitKey( 15 );
-		//if( key != -1 ){printf("stop show\n");break;}
-		//printf("key: %i\n",key);
-	}
-	
-}
-*/
 void Map3DPlanesGraphv4::visualize(){
 	bool render_full = true;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);

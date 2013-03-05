@@ -56,7 +56,7 @@ class Map3DPlanesGraphv4: public Map3D
 	void addFrame(Frame_input * fi);
 	void addFrame(RGBDFrame * frame);
 	void addTransformation(Transformation * transformation);
-	
+	vector< pair < int , int > > * match_planes(RGBDFrame * src, RGBDFrame * dst, Eigen::Matrix4f trans);
 	void estimate();
 	void setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view);
 	void visualize();

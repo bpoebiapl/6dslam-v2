@@ -259,11 +259,11 @@ int main(int argc, char **argv)
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	aick->max_points 			= 200;
+	aick->max_points 			= 500;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
-	aick->nr_iter				= 10;
-	aick->shrinking				= 0.4;
+	aick->nr_iter				= 25;
+	aick->shrinking				= 0.8;
 	
 	BowAICK * bowaick				= new BowAICK();
 	bowaick->max_points				= 200;
@@ -316,11 +316,11 @@ int main(int argc, char **argv)
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 500,calib0);
 
 
-	all_input = getFrameInput("/home/johane/alper_office",1, 1226,calib0);
+	//all_input = getFrameInput("/home/johane/alper_office",1, 1226,calib0);
 
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1, 4000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
-	//all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 50,calib0);
+	all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 50,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
