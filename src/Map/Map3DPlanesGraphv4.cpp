@@ -319,11 +319,32 @@ vector< pair < int , int > > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src,
 			dst_p_trans->normal_y = trans_inverse(1,0)*dst_p->normal_x+trans_inverse(1,1)*dst_p->normal_y+trans_inverse(1,2)*dst_p->normal_z;
 			dst_p_trans->normal_z = trans_inverse(2,0)*dst_p->normal_x+trans_inverse(2,1)*dst_p->normal_y+trans_inverse(2,2)*dst_p->normal_z;
 		
-			dst_p_trans->normal_x = trans_inverse(0,0)*dst_p->point_x+trans_inverse(0,1)*dst_p->point_y+trans_inverse(0,2)*dst_p->point_z+trans_inverse(0,3);
-			dst_p_trans->normal_y = trans_inverse(1,0)*dst_p->point_x+trans_inverse(1,1)*dst_p->point_y+trans_inverse(1,2)*dst_p->point_z+trans_inverse(1,3);
-			dst_p_trans->normal_z = trans_inverse(2,0)*dst_p->point_x+trans_inverse(2,1)*dst_p->point_y+trans_inverse(2,2)*dst_p->point_z+trans_inverse(2,3);
-			if(src_p_trans->angle(dst_p) <  0.01){
-				printf("%i %i angle: %f and %f\n",j,k,src_p_trans->angle(dst_p),src_p->angle(dst_p));
+			dst_p_trans->point_x = trans_inverse(0,0)*dst_p->point_x+trans_inverse(0,1)*dst_p->point_y+trans_inverse(0,2)*dst_p->point_z+trans_inverse(0,3);
+			dst_p_trans->point_y = trans_inverse(1,0)*dst_p->point_x+trans_inverse(1,1)*dst_p->point_y+trans_inverse(1,2)*dst_p->point_z+trans_inverse(1,3);
+			dst_p_trans->point_z = trans_inverse(2,0)*dst_p->point_x+trans_inverse(2,1)*dst_p->point_y+trans_inverse(2,2)*dst_p->point_z+trans_inverse(2,3);
+			if(fabs(1-src_p_trans->angle(dst_p)) <  0.01)
+			{
+				printf("%i %i angle: %f and %f\n",j,k,fabs(1-src_p_trans->angle(dst_p)),fabs(1-src_p->angle(dst_p)));
+				int src_inliers = 0;
+				int src_possible_inliers = 0;
+				for(int i = 0; i < src->validation_points.size(); i++){
+					float * vp = src->validation_points.at(i);
+					if(fabs(src_p->distance(vp[0],vp[1],vp[2]))<0.02f){
+						src_possible_inliers++;
+						if(fabs(dst_p_trans->distance(vp[0],vp[1],vp[2]))<0.02f){src_inliers++;}
+					}
+				}
+				
+				int dst_inliers = 0;
+				int dst_possible_inliers = 0;
+				for(int i = 0; i < dst->validation_points.size(); i++){
+					float * vp = dst->validation_points.at(i);
+					if(fabs(dst_p->distance(vp[0],vp[1],vp[2]))<0.02f){
+						dst_possible_inliers++;
+						if(fabs(src_p_trans->distance(vp[0],vp[1],vp[2]))<0.02f){dst_inliers++;}
+					}
+				}
+				printf("src: %i/%i dst: %i/%i\n",src_inliers,src_possible_inliers,src_inliers,dst_possible_inliers);
 			}
 		}
 	}
