@@ -300,7 +300,7 @@ vector< pair < int , int > > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src,
 	vector< Plane * > * planes_src = src->planes;
 	vector< Plane * > * planes_dst = dst->planes;
 	
-	printf("matches planes for %i and %i...\n",src->id,dst->id);
+	//printf("matches planes for %i and %i...\n",src->id,dst->id);
 	for(int j = 0; j < planes_src->size(); j++){
 		Plane * src_p = planes_src->at(j);
 		Plane * src_p_trans = new Plane();
@@ -324,7 +324,7 @@ vector< pair < int , int > > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src,
 			dst_p_trans->point_z = trans_inverse(2,0)*dst_p->point_x+trans_inverse(2,1)*dst_p->point_y+trans_inverse(2,2)*dst_p->point_z+trans_inverse(2,3);
 			if(fabs(1-src_p_trans->angle(dst_p)) <  0.01)
 			{
-				printf("%i %i angle: %f and %f\n",j,k,fabs(1-src_p_trans->angle(dst_p)),fabs(1-src_p->angle(dst_p)));
+				//printf("%i %i angle: %f and %f\n",j,k,fabs(1-src_p_trans->angle(dst_p)),fabs(1-src_p->angle(dst_p)));
 				int src_inliers = 0;
 				int src_possible_inliers = 0;
 				for(int i = 0; i < src->validation_points.size(); i++){
@@ -344,10 +344,172 @@ vector< pair < int , int > > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src,
 						if(fabs(src_p_trans->distance(vp[0],vp[1],vp[2]))<0.02f){dst_inliers++;}
 					}
 				}
-				printf("src: %i/%i dst: %i/%i\n",src_inliers,src_possible_inliers,src_inliers,dst_possible_inliers);
+				//printf("src: %i/%i dst: %i/%i\n",src_inliers,src_possible_inliers,dst_inliers,dst_possible_inliers);
+				float src_score = float(src_inliers)/float(src_possible_inliers);
+				float dst_score = float(dst_inliers)/float(dst_possible_inliers);
+				if(src_score*dst_score > 0.9){output->push_back(make_pair(j,k));}
+				//printf("src: %f dst: %f\n",src_score,dst_score);
+				//printf("total: %f\n",src_score*dst_score);
 			}
 		}
 	}
+
+	int width = 640;
+	int height = 480;
+	IplImage * img_combine = cvCreateImage(cvSize(2*width,height), IPL_DEPTH_8U, 3);
+	char * data = (char *)img_combine->imageData;
+	char * data_src = (char *)src_rgb_img->imageData;
+	char * data_dst = (char *)dst_rgb_img->imageData;
+	
+	for (int j = 0; j < height; j++){
+		for (int i = 0; i < width; i++){
+			int ind = 3*(640*j+i);
+			data[3 * (j * (2*width) + (width+i)) + 0] = data_dst[ind +0];
+			data[3 * (j * (2*width) + (width+i)) + 1] = data_dst[ind +1];
+			data[3 * (j * (2*width) + (width+i)) + 2] = data_dst[ind +2];
+			data[3 * (j * (2*width) + (i)) + 0] = data_src[ind +0];
+			data[3 * (j * (2*width) + (i)) + 1] = data_src[ind +1];
+			data[3 * (j * (2*width) + (i)) + 2] = data_src[ind +2];
+				
+		}
+	}
+	
+	float d_scaleing	= src->input->calibration->ds/src->input->calibration->scale;
+	float centerX		= src->input->calibration->cx;
+	float centerY		= src->input->calibration->cy;
+	float invFocalX		= 1.0f/src->input->calibration->fx;
+    float invFocalY		= 1.0f/src->input->calibration->fy;
+    
+	unsigned short * depth_data	= (unsigned short *)src_depth_img->imageData;
+	for(int w = 0; w < width; w++){
+		for(int h = 0; h < height; h++){
+			int ind = 640*h+w;
+			float x = 0;
+			float y = 0;
+			float z = float(depth_data[ind]) * d_scaleing;
+		   	int best_i;
+			float best = 1000;
+			if(z > 0){
+				x = (w - centerX) * z * invFocalX;
+		       	y = (h - centerY) * z * invFocalY;
+
+				for(int i = 0; i < output->size(); i++){
+					float d = fabs(src->planes->at(output->at(i).first)->distance(x,y,z));
+					if(d < best){
+						best = d;
+						best_i = i;
+					}
+				}
+				if(best < 0.01){
+					ind = (h * (2*width) + (w));
+					if(best_i == 0){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 0;
+					}else if(best_i == 1){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 0;
+					}else if(best_i == 2){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 255;
+					}else if(best_i == 3){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 0;
+					}else if(best_i == 4){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 255;
+					}else if(best_i == 5){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}else if(best_i == 6){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}else if(best_i == 7){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}
+				}
+			}
+		}
+	}
+	
+	d_scaleing	= dst->input->calibration->ds/dst->input->calibration->scale;
+	centerX		= dst->input->calibration->cx;
+	centerY		= dst->input->calibration->cy;
+	invFocalX	= 1.0f/dst->input->calibration->fx;
+    invFocalY	= 1.0f/dst->input->calibration->fy;
+    
+	depth_data	= (unsigned short *)dst_depth_img->imageData;
+	for(int w = 0; w < width; w++){
+		for(int h = 0; h < height; h++){
+			int ind = 640*h+w;
+			float x = 0;
+			float y = 0;
+			float z = float(depth_data[ind]) * d_scaleing;
+		   	int best_i;
+			float best = 1000;
+			if(z > 0){
+				x = (w - centerX) * z * invFocalX;
+		       	y = (h - centerY) * z * invFocalY;
+
+				for(int i = 0; i < output->size(); i++){
+					float d = fabs(dst->planes->at(output->at(i).second)->distance(x,y,z));
+					if(d < best){
+						best = d;
+						best_i = i;
+					}
+				}
+				if(best < 0.01){
+					ind = (h * (2*width) + (width+w));
+					if(best_i == 0){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 0;
+					}else if(best_i == 1){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 0;
+					}else if(best_i == 2){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 255;
+					}else if(best_i == 3){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 0;
+					}else if(best_i == 4){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 0;
+						data[3*ind+2] = 255;
+					}else if(best_i == 5){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}else if(best_i == 6){
+						data[3*ind+0] = 0;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}else if(best_i == 7){
+						data[3*ind+0] = 255;
+						data[3*ind+1] = 255;
+						data[3*ind+2] = 255;
+					}
+				}
+			}
+		}
+	}
+
+	cvNamedWindow("combined image", CV_WINDOW_AUTOSIZE );
+	cvShowImage("combined image", img_combine);
+		
+	cvWaitKey(0);
 	
 	cvReleaseImage( &src_rgb_img );
 	cvReleaseImage( &src_depth_img );
