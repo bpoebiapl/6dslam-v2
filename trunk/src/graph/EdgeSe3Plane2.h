@@ -21,51 +21,46 @@ namespace g2o {
     double nx;
     double ny;
     double nz;
-    double d;
+    double px;
+    double py;
+    double pz;
     void computeError()
     {
 		const VertexSE3* v1 = dynamic_cast<const VertexSE3*>(_vertices[0]);
 		const VertexPlane* v2 = dynamic_cast<const VertexPlane*>(_vertices[1]);
 		Matrix4d mat2 = v1->estimate().to_homogenious_matrix();
 		Matrix4d mat = mat2.inverse();
-		
-		Vector4d pos = Vector4d(0,0,0,1);
-		
+
 		double rx = v2->rx;
 		double ry = v2->ry;
 		double rz = v2->rz;
 		
-		double px = v2->px;
-		double py = v2->py;
-		double pz = v2->pz;
+		double p2x = v2->px;
+		double p2y = v2->py;
+		double p2z = v2->pz;
+
+		double tmp_nx = nx*mat2(0,0) + ny*mat2(0,1) + nz*mat2(0,2);
+		double tmp_ny = nx*mat2(1,0) + ny*mat2(1,1) + nz*mat2(1,2);
+		double tmp_nz = nx*mat2(2,0) + ny*mat2(2,1) + nz*mat2(2,2);
 		
-		double x = mat2(0,3);
-		double y = mat2(1,3);
-		double z = mat2(2,3);
+		double tmp_px = px*mat2(0,0) + py*mat2(0,1) + pz*mat2(0,2)+mat2(0,3);
+		double tmp_py = px*mat2(1,0) + py*mat2(1,1) + pz*mat2(1,2)+mat2(1,3);
+		double tmp_pz = px*mat2(2,0) + py*mat2(2,1) + pz*mat2(2,2)+mat2(2,3);
 		
-		double tmp_nx = rx*mat(0,0) + ry*mat(0,1) + rz*mat(0,2);
-		double tmp_ny = rx*mat(1,0) + ry*mat(1,1) + rz*mat(1,2);
-		double tmp_nz = rx*mat(2,0) + ry*mat(2,1) + rz*mat(2,2);
-		
-		double tmp_d = rx*(px-x) + ry*(py-y) + rz*(pz-z);
-		float diff = fabs(tmp_d-d);
-		diff-= 0.015f;
-		if(diff < 0){diff = 0;}
-		diff = diff*diff*diff;
-		
-		//if((v2->id == 0) && (rand()%100 == 0)){printf("%i [%.5f,%.5f]\n",v2->id,tmp_d,d);}
-		
-		_error[0] = 10000.0f*fabs(tmp_nx-nx);
-		_error[1] = 10000.0f*fabs(tmp_ny-ny);
-		_error[2] = 10000.0f*fabs(tmp_nz-nz);
-		_error[3] = diff;
+		double tmp = rx*(p2x-tmp_px) + ry*(p2y-tmp_py) + rz*(p2z-tmp_pz);
+		_error[0] = 1.0f*fabs(tmp_nx-rx);
+		_error[1] = 1.0f*fabs(tmp_ny-ry);
+		_error[2] = 1.0f*fabs(tmp_nz-rz);
+		_error[3] = 0;//0.01f*fabs(tmp);
     }
 
 	void setMeasurement(Plane * p){
 		nx = p->normal_x;
 		ny = p->normal_y;
 		nz = p->normal_z;
-		d = p->distance(0,0,0);
+		px = p->point_x;
+		py = p->point_y;
+		pz = p->point_z;
 	}
 	
     virtual bool read(std::istream& is);

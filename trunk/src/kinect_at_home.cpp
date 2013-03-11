@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	aick->max_points 			= 500;
+	aick->max_points 			= 400;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
 	aick->nr_iter				= 25;
@@ -297,12 +297,12 @@ int main(int argc, char **argv)
 	mlm->addMatcher(new FrameMatcher());
 
 
-	map->matcher = aick;//new DistanceNetMatcherv3(1,100, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
-	map->loopclosure_matcher = aick;
+	map->matcher = new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
+	map->loopclosure_matcher = new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;
 	map->segmentation = new RGBDSegmentationBase();
 	//map->segmentation = new RGBDSegmentationTest();
 	//map->segmentation = new RGBDSegmentationPCL();
-	//map->segmentation = new RGBDSegmentationDummy();
+	map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib0;
 	map->extractor = surf;
 	map->setVisualization(viewer);
@@ -316,11 +316,11 @@ int main(int argc, char **argv)
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 500,calib0);
 
 
-	all_input = getFrameInput("/home/johane/alper_office",1, 100,calib0);
+	//all_input = getFrameInput("/home/johane/alper_office",1, 100,calib0);
 
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1, 4000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
-	//all_input = getFrameInput("/home/johane/johan_cvap_run",2900, 5,calib0);
+	all_input = getFrameInput("/home/johane/johan_cvap_run",800, 50,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
@@ -390,7 +390,7 @@ int main(int argc, char **argv)
 	recalc_rendering = true;
 	
 
-	for(int i = 0; i < 1; i++){
+	for(int i = 0; i < 11; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, start_test_thread, NULL);
 	}
