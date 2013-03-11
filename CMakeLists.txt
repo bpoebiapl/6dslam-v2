@@ -56,6 +56,9 @@ add_library(core src/core/RGBDFrame.cpp src/core/Transformation.cpp)
 target_link_libraries(core RGBDSegmentation)
 target_link_libraries(core FeatureExtractor)
 
+include_directories(src/graphcutting)
+add_library(graphcutting src/graphcutting/GraphForCut.cpp)
+
 include_directories(src/TransformationFilter)
 add_library(TransformationFilter src/TransformationFilter/TransformationFilter.cpp src/TransformationFilter/FeatureDistanceFilter.cpp src/TransformationFilter/PixelDistanceFilter.cpp src/TransformationFilter/DistanceNetFilter.cpp src/TransformationFilter/RansacFilter.cpp src/TransformationFilter/BowFilter.cpp src/TransformationFilter/UpdateWeightFilter.cpp src/TransformationFilter/UpdateWeightFilterv2.cpp )
 target_link_libraries(TransformationFilter ${PCL_LIBRARIES})
@@ -66,10 +69,11 @@ target_link_libraries(TransformationFilter core)
 target_link_libraries(TransformationFilter opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 include_directories(src/FrameMatcher)
-add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/BowAICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp)
+add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/BowAICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/DistanceNetMatcherv5.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp)
 target_link_libraries(FrameMatcher ${PCL_LIBRARIES})
 target_link_libraries(FrameMatcher core)
 target_link_libraries(FrameMatcher TransformationFilter)
+target_link_libraries(FrameMatcher graphcutting)
 #target_link_libraries(FrameMatcher mygeometry)
 #target_link_libraries(FrameMatcher FeatureDescriptor)
 #target_link_libraries(FrameMatcher FeatureExtractor)
@@ -83,6 +87,7 @@ target_link_libraries(map3d core)
 target_link_libraries(map3d mygeometry)
 target_link_libraries(map3d FrameMatcher)
 target_link_libraries(map3d graph)
+target_link_libraries(map3d graphcutting)
 
 ##########################################################################################################################################################################
 ########################################################################       APPS       ################################################################################

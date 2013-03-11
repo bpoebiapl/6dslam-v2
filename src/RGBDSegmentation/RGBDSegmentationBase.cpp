@@ -81,7 +81,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	int step = 4;
 	int size = 5;
 	IplImage * img_clone;
-	for(int runs = 0; runs < 20; runs++){
+	for(int runs = 0; runs < 10; runs++){
 		float best_score = 0;
 		float best_score_scale = 0;
 		Plane * best_plane = 0;
@@ -144,6 +144,7 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 				}
 			}
 		}
+		if(best_plane == 0){break;}
 		float threshold_now = 0.015f;
 		int inliers = 1;
 		int total_datapoints = 0;
@@ -164,10 +165,11 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 		float point_y = best_plane->point_y;
 		float point_z = best_plane->point_z;
 	
-		for(int improvement = 0; improvement < 30 && !(normal_x == last_normal_x && normal_y == last_normal_y && normal_z == last_normal_z && point_x == last_point_x && point_y == last_point_y && point_z == last_point_z); improvement++){
-			//img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
-			//cvCopy( rgb_img, img_clone, NULL );
-			//char * cdata 			= (char *)(img_clone->imageData);
+		for(int improvement = 0; improvement < 30 /*&& !(normal_x == last_normal_x && normal_y == last_normal_y && normal_z == last_normal_z && point_x == last_point_x && point_y == last_point_y && point_z == last_point_z)*/; improvement++){
+			printf("improvement: %i\n",improvement);
+			img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
+			cvCopy( rgb_img, img_clone, NULL );
+			char * cdata 			= (char *)(img_clone->imageData);
 
 			last_normal_x = normal_x;
 			last_normal_y = normal_y;
@@ -196,15 +198,15 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 							s_x->push_back(x[i][j]);
 							s_y->push_back(y[i][j]);
 							s_z->push_back(z[i][j]);
-							//int ind = width*j+i;
-							//cdata[3*ind+0] = 255;
-							//cdata[3*ind+1] = 0;
-							//cdata[3*ind+2] = 255;
+							int ind = width*j+i;
+							cdata[3*ind+0] = 255;
+							cdata[3*ind+1] = 0;
+							cdata[3*ind+2] = 255;
 						}
 					}
 				}
 			}
-
+			
 			float std_div = 0;
 			for(int i = 0; i < d_vec.size(); i++){std_div += d_vec.at(i)*d_vec.at(i);}
 			std_div = sqrt(std_div/float(d_vec.size()));
@@ -222,12 +224,16 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 			point_z = best_plane_update->point_z;
 			delete best_plane;
 			best_plane = best_plane_update;
-			//cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
-			//cvShowImage("segments", img_clone);
-			//cvWaitKey(0);
-			//cvReleaseImage( &img_clone );
+			
+			cvNamedWindow("segments", CV_WINDOW_AUTOSIZE );
+			cvShowImage("segments", img_clone);
+			cvWaitKey(0);
+			cvReleaseImage( &img_clone );
 		}
-	
+		if(inliers < 3){
+			delete best_plane;
+			break;
+		}
 		normal_x = best_plane->normal_x;
 		normal_y = best_plane->normal_y;
 		normal_z = best_plane->normal_z;
@@ -243,7 +249,6 @@ vector<Plane * > * RGBDSegmentationBase::segment(IplImage * rgb_img,IplImage * d
 	
 		printf("threshold_now %f && %i > %f && %i > %f\n", threshold_now,inliers,0.2f*total_datapoints,inliers,0.02f*width*height);
 		if(threshold_now < 0.2 && inliers > 0.2f*total_datapoints && inliers > 0.02f*width*height){printf("good plane...\n");planes->push_back(best_plane);}
-		//else{printf("bad plane..\n");//break;}
 		if(total_datapoints < 0.02f*float(width*height)){break;}
 	}
 	for(int i = 0; i < width; i++){
