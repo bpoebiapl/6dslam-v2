@@ -26,6 +26,8 @@
 #include "g2o/types/slam3d/vertex_se3_quat.h"
 #include "g2o/types/slam3d/edge_se3_quat.h"
 
+#include "GraphForCut.h"
+
 using namespace std;
 
 class Map3DPlanesGraphv4: public Map3D
