@@ -183,11 +183,11 @@ vector< Frame_input * > * getFrameInput(string path,int start, int max, Calibrat
 	char fpath [150];
 	for(int i = start; i <= start+max; i+=1){
 		Frame_input * fi =  new Frame_input();
-		sprintf(fpath,"%s/rgb_frames/%05i.png",path.c_str(),i);
+		sprintf(fpath,"%s/rgb_frames/frame_%05i.png",path.c_str(),i);
 		printf("----------------------%i---------------------\n",i);
 		printf("%s\n",fpath);
 		fi->rgb_path 			= string(fpath);
-		sprintf(fpath,"%s/depth_frames/%05i.png",path.c_str(),i);
+		sprintf(fpath,"%s/depth_frames/depth_%05i.png",path.c_str(),i);
 		printf("%s\n",fpath);
 		fi->depth_path			= string(fpath);
 		fi->calibration			= calibration;
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	aick->max_points 			= 400;
+	aick->max_points 			= 700;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
 	aick->nr_iter				= 25;
@@ -297,8 +297,8 @@ int main(int argc, char **argv)
 	mlm->addMatcher(new FrameMatcher());
 
 
-	map->matcher = new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
-	map->loopclosure_matcher = new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;
+	map->matcher = new AICK();//new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
+	map->loopclosure_matcher = aick;//new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;
 	map->segmentation = new RGBDSegmentationBase();
 	//map->segmentation = new RGBDSegmentationTest();
 	//map->segmentation = new RGBDSegmentationPCL();
@@ -320,7 +320,9 @@ int main(int argc, char **argv)
 
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1, 4000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
-	all_input = getFrameInput("/home/johane/johan_cvap_run",800, 50,calib0);
+	//all_input = getFrameInput("/home/johane/johan_cvap_run",800, 50,calib0);
+	
+	all_input = getFrameInput("/home/johane/office1",1, 3,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
@@ -330,16 +332,16 @@ int main(int argc, char **argv)
 
 
 
-/*
+
 	cvNamedWindow( "Transformations", 1 );
-	cvCreateTrackbar( "aick iter", "Transformations", &angle_switch_value, 100, switch_callback_aick_iter);
-	cvSetTrackbarPos( "aick iter", "Transformations", int(bowaick->nr_iter));
+//	cvCreateTrackbar( "aick iter", "Transformations", &angle_switch_value, 100, switch_callback_aick_iter);
+//	cvSetTrackbarPos( "aick iter", "Transformations", int(bowaick->nr_iter));
 	
-	cvCreateTrackbar( "aick shrink", "Transformations", &angle_switch_value, 1000, switch_callback_aick_shrink);
-	cvSetTrackbarPos( "aick shrink", "Transformations", int(bowaick->shrinking*1000));
+//	cvCreateTrackbar( "aick shrink", "Transformations", &angle_switch_value, 1000, switch_callback_aick_shrink);
+//	cvSetTrackbarPos( "aick shrink", "Transformations", int(bowaick->shrinking*1000));
 	
-	cvCreateTrackbar( "aick max_points", "Transformations", &angle_switch_value, 5000, switch_callback_aick_max_points);
-	cvSetTrackbarPos( "aick max_points", "Transformations", int(bowaick->max_points));
+//	cvCreateTrackbar( "aick max_points", "Transformations", &angle_switch_value, 5000, switch_callback_aick_max_points);
+//	cvSetTrackbarPos( "aick max_points", "Transformations", int(bowaick->max_points));
 	
 	cvCreateTrackbar( "w_limit_close", "Transformations", &angle_switch_value, 1000, switch_callback_w_limit_close );
 	cvSetTrackbarPos( "w_limit_close", "Transformations", int(((Map3DPlanesGraphv4 *)mymap)->w_limit_close * 100.0));
@@ -353,8 +355,8 @@ int main(int argc, char **argv)
 	cvCreateTrackbar( "match_limit_loop", "Transformations", &angle_switch_value, 1000, switch_callback_match_limit_loop );
 	cvSetTrackbarPos( "match_limit_loop", "Transformations", int(((Map3DPlanesGraphv4 *)mymap)->match_limit_loop));
 	
-	cvCreateTrackbar( "img_threshold", "Transformations", &angle_switch_value, 10000, switch_callback_img_threshold);
-	cvSetTrackbarPos( "img_threshold", "Transformations", int(((Map3DPlanesGraphv4 *)mymap)->img_threshold * 10000.0));
+//	cvCreateTrackbar( "img_threshold", "Transformations", &angle_switch_value, 10000, switch_callback_img_threshold);
+//	cvSetTrackbarPos( "img_threshold", "Transformations", int(((Map3DPlanesGraphv4 *)mymap)->img_threshold * 10000.0));
 	
 	cvCreateTrackbar( "redo transformations", "Transformations", &angle_switch_value, 1, switch_callback_redo_transformation);
 	cvSetTrackbarPos( "redo transformations", "Transformations", 0);
@@ -375,7 +377,7 @@ int main(int argc, char **argv)
 	if(((Map3DPlanesGraphv4 *)mymap)->render_full)	{cvSetTrackbarPos( "path/full", "Rendering",1);}
 	else											{cvSetTrackbarPos( "path/full", "Rendering",0);}
 	cvCreateTrackbar( "redo rendering", "Rendering", &angle_switch_value, 1, switch_callback_redo_rendering);
-*/
+
 
 	cvNamedWindow( "dummy", 1 );
 	
@@ -385,9 +387,9 @@ int main(int argc, char **argv)
 	struct timeval start, end;
 	
 	recalc_frames = true;
-	recalc_transformations = true;
-	recalc_estimate = true;
-	recalc_rendering = true;
+	recalc_transformations = false;
+	recalc_estimate = false;
+	recalc_rendering = false;
 	
 
 	for(int i = 0; i < 11; i++){
@@ -396,7 +398,7 @@ int main(int argc, char **argv)
 	}
 	
 	while(true){
-		//cvWaitKey(0);
+		cvWaitKey(0);
 		gettimeofday(&start, NULL);
 		if(recalc_frames){
 			recalc_frames = false;
