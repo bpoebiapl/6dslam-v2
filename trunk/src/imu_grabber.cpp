@@ -102,9 +102,10 @@ public:
     IplImage * rgb_img		= cvCreateImage(cvSize(640, 480), IPL_DEPTH_8U, 3);
     char * rgb_data 		= (char *)(rgb_img->imageData);
     
-    IplImage * depth_img	= cvCreateImage(cvSize(640, 480), IPL_DEPTH_16U, 1);
+    IplImage * depth_img	= cvCreateImage(cvSize(640, 480), IPL_DEPTH_8U, 3);
 	//float * depth_data		= (float *)depth_img->imageData;
-    unsigned short * depth_data		= (unsigned short *)depth_img->imageData;
+    //unsigned short * depth_data		= (unsigned short *)depth_img->imageData;
+    char * depth_data 		= (char *)(depth_img->imageData);
     for(int i = 0; i < 640; i++){
 		for(int j = 0; j < 480; j++){
 			int ind = 640*j+i;
@@ -118,7 +119,24 @@ public:
 			//depth_data[3*ind+1]	= cloud->points[ind].y;
 			//depth_data[3*ind+2]	= cloud->points[ind].z;
 			//printf("%i %i %i\n",i,j,(unsigned short)(1000*cloud->points[ind].z));
-			depth_data[ind]	= (unsigned short)(1000.0f*cloud->points[ind].z);
+			unsigned short d = (unsigned short)(1000.0f*cloud->points[ind].z);
+			
+			char * arr = (char *)(&d);
+			char part1 = arr[0];
+			char part2 = arr[1];
+			
+			depth_data[3*ind+0] = part1;
+			depth_data[3*ind+1] = part2;
+			depth_data[3*ind+2] = 0;
+
+			//unsigned short d_rebuild = 0;
+			//char * arr_rebuild = (char *)(&d_rebuild);
+			
+			//arr_rebuild[0] = part1;
+			//arr_rebuild[1] = part2;
+			
+			//printf("d: %i, part1:%i part2:%i -> rebuild: %i\n",d,(unsigned int)part1,(unsigned int)part2,d_rebuild);
+			//depth_data[ind]	= d;
 		}
 	}
     
@@ -128,19 +146,32 @@ public:
 	cvNamedWindow("depth", CV_WINDOW_AUTOSIZE );
 	cvShowImage("depth", depth_img);
 	
-	cvWaitKey(50);
+
 	double currenttime = getTime();
 	char buffer[250];
 	sprintf (buffer, "outputimgs/rgb_%f.jpg", currenttime);
 	//printf ("%s\n",buffer);
-	cvSaveImage(buffer,rgb_img); 
+	cvSaveImage(buffer,rgb_img);
+	IplImage * rgb_img_loaded		= cvLoadImage(buffer,CV_LOAD_IMAGE_UNCHANGED);
 	
 	sprintf (buffer, "outputimgs/depth_%f.jpg", currenttime);
 	//printf ("%s\n",buffer);
 	cvSaveImage(buffer,depth_img);
+    IplImage * depth_img_loaded		= cvLoadImage(buffer,CV_LOAD_IMAGE_UNCHANGED);
+    
+    cvNamedWindow("rgb_loaded", CV_WINDOW_AUTOSIZE );
+	cvShowImage("rgb_loaded", rgb_img_loaded);
+	
+	cvNamedWindow("depth_loaded", CV_WINDOW_AUTOSIZE );
+	cvShowImage("depth_loaded", depth_img_loaded);
+	
+	cvWaitKey(50);
 	
 	cvReleaseImage( &rgb_img );
 	cvReleaseImage( &depth_img );
+
+	cvReleaseImage( &rgb_img_loaded );
+	cvReleaseImage( &depth_img_loaded );
   }
   
   void run ()
@@ -171,9 +202,9 @@ int main ()
 {
 	gettimeofday(&start, NULL);
 	connect();
-  SimpleOpenNIProcessor v;
-  v.run ();
-  return (0);
+	SimpleOpenNIProcessor v;
+	v.run ();
+	return (0);
 }
 
 
