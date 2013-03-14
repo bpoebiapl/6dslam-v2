@@ -52,12 +52,14 @@ void * map_start_test_thread( void *ptr )
 		pthread_mutex_lock( &map_tasks_mutex );
 		if(map_tasks.size() > 0)
 		{
+			//printf("map_tasks:%i\n",map_tasks.size());
 			map_task * task = map_tasks.back();
 			map_tasks.pop_back();
 			pthread_mutex_unlock(&map_tasks_mutex);
 			
 			Transformation * t = task->matcher->getTransformation(task->src, task->dst);
 			if(t->weight > task->weight_limit){
+				printf("closing loop: %i to %i\n",task->src->id,task->dst->id);
 				//vector< vector<Transformation *> * > * tmat =  task->m->transformations_mat;
 				//tmat->at(task->src->id)->push_back(t);
 				pthread_mutex_lock( &transformation_mutex );
@@ -82,16 +84,16 @@ using namespace std;
 
 Map3DPlanesGraphv4::Map3DPlanesGraphv4(){
 	transformations_mat = new vector< vector<Transformation *> * >();
-	max_backing = 3;
+	max_backing = 15;
 	
-	match_limit_close = 50.00;
+	match_limit_close = 30.00;
 	w_limit_close = 3.70;
 	
-	match_limit_loop = 50.00;
-	w_limit_loop = 3.90;
+	match_limit_loop = 15.00;
+	w_limit_loop = 3.70;
 	
 	estimateIter = 150;
-	img_threshold = 0.005;
+	img_threshold = 0.01;
 	smoothing = 0.1;
 	render_full = false;
 	graphoptimizer.setMethod(g2o::SparseOptimizer::LevenbergMarquardt);
@@ -591,23 +593,33 @@ void Map3DPlanesGraphv4::estimate(){
 	}
 	for(int i  = 0; i < transformations.size(); i++){
 		Transformation * transformation = transformations.at(i);
-		//printf("pointer: %d\n",(unsigned int *)transformation);
-		if(transformation != 0 && (transformation->weight >= w_limit_close))
-		{
-			printf("transformation: %i %i\n",transformation->src->id,transformation->dst->id);
-			//transformation->show();
-			Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
-			Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
-			g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
-			g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
-			edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;
-			edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;
-			edgeSE3->setMeasurement(transfoSE3.inverse());
-			edgeSE3->setInverseMeasurement(transfoSE3);
-			Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
-			mat.setIdentity(6,6);
-			edgeSE3->information() = mat;
-			graphoptimizer.addEdge(edgeSE3);
+		if(transformation != 0){
+			int matches_req = 0;
+			float w_limit = 0;
+			if(fabs(transformation->src->id - transformation->dst->id) < max_backing){
+				matches_req = match_limit_close;
+				w_limit = w_limit_close;
+			}else{
+				matches_req = match_limit_loop;
+				w_limit = w_limit_loop;
+			}
+			if((transformation->weight >= w_limit) && (transformation->matches.size() >= matches_req))
+			{
+				printf("transformation: %i %i\n",transformation->src->id,transformation->dst->id);
+				//transformation->show();
+				Eigen::Affine3f eigenTransform(transformation->transformationMatrix);
+				Eigen::Quaternionf eigenRotation(eigenTransform.rotation());
+				g2o::SE3Quat transfoSE3(Eigen::Quaterniond(eigenRotation.w(), eigenRotation.x(), eigenRotation.y(), eigenRotation.z()),Eigen::Vector3d(eigenTransform(0,3), eigenTransform(1,3), eigenTransform(2,3)));
+				g2o::EdgeSE3* edgeSE3 = new g2o::EdgeSE3;
+				edgeSE3->vertices()[0] = frames.at(transformation->src->id)->g2oVertex;
+				edgeSE3->vertices()[1] = frames.at(transformation->dst->id)->g2oVertex;
+				edgeSE3->setMeasurement(transfoSE3.inverse());
+				edgeSE3->setInverseMeasurement(transfoSE3);
+				Eigen::Matrix<double, 6, 6, 0, 6, 6> mat;
+				mat.setIdentity(6,6);
+				edgeSE3->information() = mat;
+				graphoptimizer.addEdge(edgeSE3);
+			}
 		}
 	}
 	
@@ -655,7 +667,7 @@ void Map3DPlanesGraphv4::estimate(){
 	for(int i  = 0; i < frames.size(); i++){
 		g2o::VertexSE3 * vertexSE3_src = (g2o::VertexSE3*)(graphoptimizer.vertex(frames.at(i)->id));
 		poses.at(i) = (vertexSE3_src->estimate().to_homogenious_matrix()).cast<float>();
-		//cout<<i<<endl<<poses.at(i)<<endl;
+		cout<<i<<endl<<poses.at(i)<<endl;
 	}
 	printf("estimate done\n");
 }
@@ -728,7 +740,7 @@ void Map3DPlanesGraphv4::visualize(){
 					if(g < 0){g = 255+g;}
 					if(b < 0){b = 255+b;}
 
-					if(z > 0 && z < 1.25f){
+					if(z > 0 && z < 3.0f){
 						x = (w - centerX) * z * invFocalX;
 					   	y = (h - centerY) * z * invFocalY;
 					   	
@@ -768,7 +780,9 @@ void Map3DPlanesGraphv4::visualize(){
 	viewer->removePointCloud("sample cloud");
 	viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
 	usleep(100);
-	while (true){
+	for(int i = 0; i < 50; i++)///while (true)
+	{
+		printf("i:%i\n",i);
 		viewer->spinOnce (100);
 		boost::this_thread::sleep (boost::posix_time::microseconds (100000));
 	}
