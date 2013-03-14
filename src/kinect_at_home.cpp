@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",800, 50,calib0);
 	
-	all_input = getFrameInput("/home/johane/office1",1, 3,calib0);
+	all_input = getFrameInput("/home/johane/office1",1, 1472,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
