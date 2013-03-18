@@ -259,11 +259,11 @@ int main(int argc, char **argv)
 	mymap = map;
 	
 	AICK * aick = new AICK();
-	aick->max_points 			= 700;
+	aick->max_points 			= 400;
 	aick->distance_threshold	= 0.01f;
 	aick->feature_threshold		= 0.2f;
-	aick->nr_iter				= 25;
-	aick->shrinking				= 0.8;
+	aick->nr_iter				= 10;
+	aick->shrinking				= 0.5;
 	
 	BowAICK * bowaick				= new BowAICK();
 	bowaick->max_points				= 200;
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 	mlm->addMatcher(new FrameMatcher());
 
 
-	map->matcher = new AICK();//new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
+	map->matcher = aick;//new AICK();//new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;//mlm;//bowaick;//mlf;//mlm;
 	map->loopclosure_matcher = aick;//new DistanceNetMatcherv5(1,500, 0.01, 1.96*0.01, true, 0.02, true, 0.01f);//aick;
 	map->segmentation = new RGBDSegmentationBase();
 	//map->segmentation = new RGBDSegmentationTest();
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",1450, 1000,calib0);
 	//all_input = getFrameInput("/home/johane/johan_cvap_run",800, 50,calib0);
 	
-	all_input = getFrameInput("/home/johane/office1",1, 1472,calib0);
+	all_input = getFrameInput("/home/johane/office1",1, 300,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",850, 2000,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1250+1400, 500,calib0);
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",3977, 1,calib0);
@@ -387,9 +387,9 @@ int main(int argc, char **argv)
 	struct timeval start, end;
 	
 	recalc_frames = true;
-	recalc_transformations = false;
-	recalc_estimate = false;
-	recalc_rendering = false;
+	recalc_transformations = true;
+	recalc_estimate = true;
+	recalc_rendering = true;
 	
 
 	for(int i = 0; i < 11; i++){

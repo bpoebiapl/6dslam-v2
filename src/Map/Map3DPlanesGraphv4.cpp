@@ -84,25 +84,25 @@ using namespace std;
 
 Map3DPlanesGraphv4::Map3DPlanesGraphv4(){
 	transformations_mat = new vector< vector<Transformation *> * >();
-	max_backing = 15;
+	max_backing = 1;
 	
 	match_limit_close = 30.00;
 	w_limit_close = 3.70;
 	
-	match_limit_loop = 15.00;
-	w_limit_loop = 3.70;
+	match_limit_loop = 5.00;
+	w_limit_loop = 3.20;
 	
 	estimateIter = 150;
-	img_threshold = 0.01;
+	img_threshold = 0.00025;
 	smoothing = 0.1;
-	render_full = false;
+	render_full = true;
 	graphoptimizer.setMethod(g2o::SparseOptimizer::LevenbergMarquardt);
 	graphoptimizer.setVerbose(false);
 	g2o::BlockSolver_6_3::LinearSolverType * linearSolver = new g2o::LinearSolverPCG<g2o::BlockSolver_6_3::PoseMatrixType>();
 	g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(&graphoptimizer,linearSolver);
 	graphoptimizer.setSolver(solver_ptr);
 	
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 10; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, map_start_test_thread, NULL);
 	}
@@ -264,7 +264,7 @@ void Map3DPlanesGraphv4::addFrame(RGBDFrame * frame){
 		}
 	}
 
-	while(map_tasks_to_do() > 0){usleep(1000);}
+	
 }
 
 vector< GraphEdge > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src, RGBDFrame * dst, Eigen::Matrix4f trans){
@@ -501,6 +501,10 @@ vector< GraphEdge > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src, RGBDFram
 
 void Map3DPlanesGraphv4::addTransformation(Transformation * transformation){transformations.push_back(transformation);}
 void Map3DPlanesGraphv4::estimate(){
+	while(map_tasks_to_do() > 0){
+		printf("tasks to do: %i\n",map_tasks_to_do());
+		usleep(100000);
+	}
 	usleep(500000);
 	/*
 	for(int i = 0; i < frames.size(); i++){
@@ -593,6 +597,7 @@ void Map3DPlanesGraphv4::estimate(){
 	}
 	for(int i  = 0; i < transformations.size(); i++){
 		Transformation * transformation = transformations.at(i);
+
 		if(transformation != 0){
 			int matches_req = 0;
 			float w_limit = 0;
@@ -602,6 +607,10 @@ void Map3DPlanesGraphv4::estimate(){
 			}else{
 				matches_req = match_limit_loop;
 				w_limit = w_limit_loop;
+			}
+			if(fabs(transformation->src->id - transformation->dst->id) > 50){
+				transformation->show();
+				transformation->show(viewer);
 			}
 			if((transformation->weight >= w_limit) && (transformation->matches.size() >= matches_req))
 			{
@@ -669,6 +678,129 @@ void Map3DPlanesGraphv4::estimate(){
 		poses.at(i) = (vertexSE3_src->estimate().to_homogenious_matrix()).cast<float>();
 		cout<<i<<endl<<poses.at(i)<<endl;
 	}
+/*	
+	for(int i  = 0; i < frames.size(); i++){
+		Matrix4f pose_i = poses.at(i);
+		Matrix4f pose_i_inv = pose_i.inverse();
+		for(int j  = i+1; j < frames.size(); j++){
+			Matrix4f pose_j = poses.at(j);
+			Matrix4f pose_j_inv = pose_j.inverse();
+			Matrix4f transform = pose_i_inv*pose_j;
+			Matrix4f transform_inv = transform.inverse();
+			
+			RGBDFrame * dst = frames.at(i);
+			RGBDFrame * src = frames.at(j);
+			
+			float mat00 = transform(0,0);
+			float mat01 = transform(0,1);
+			float mat02 = transform(0,2);
+			float mat03 = transform(0,3);
+			float mat10 = transform(1,0);
+			float mat11 = transform(1,1);
+			float mat12 = transform(1,2);
+			float mat13 = transform(1,3);
+			float mat20 = transform(2,0);
+			float mat21 = transform(2,1);
+			float mat22 = transform(2,2);
+			float mat23 = transform(2,3);
+			
+			float counter_good = 0;
+			float counter_bad = 0;
+			float counter_total = 0;
+			
+			IplImage* depth_img = cvLoadImage(src->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+			unsigned short * depth_data	= (unsigned short *)depth_img->imageData;
+			
+			float limit = 0.01;
+			
+			
+			float d_scaleing	= dst->input->calibration->ds/dst->input->calibration->scale;
+			float centerX		= dst->input->calibration->cx;
+			float centerY		= dst->input->calibration->cy;
+			float invFocalX		= 1.0f/dst->input->calibration->fx;
+			float invFocalY		= 1.0f/dst->input->calibration->fy;
+			
+			for(int k = 0; k < src->validation_points.size(); k++){
+				float * vp = src->validation_points.at(k);
+	
+				float x_tmp = vp[0];
+				float y_tmp = vp[1];
+				float z_tmp = vp[2];
+				
+				float x = x_tmp*mat00+y_tmp*mat01+z_tmp*mat02+mat03;
+				float y = x_tmp*mat10+y_tmp*mat11+z_tmp*mat12+mat13;
+				float z = x_tmp*mat20+y_tmp*mat21+z_tmp*mat22+mat23;
+		
+				//int d_data 	= int(0.5f+z/d_scaleing);
+				int w 		= int(0.5f+x/(z * invFocalX) + centerX);
+				int h 		= int(0.5f+y/(z * invFocalY) + centerY);
+				if(w>=0 && w < 640 && h >= 0 && h < 480){
+					float z_img = int(depth_data[640*h+w])*d_scaleing;
+					if(z_img > 0.01){
+						float diff = z-z_img;
+						if(fabs(diff) < limit)		{counter_good++;}
+						else if(z+0.075f < z_img)	{counter_bad++;}
+						counter_total++;
+					}
+				}
+			}
+			cvReleaseImage( &depth_img );
+			
+			if(counter_total < 5000){counter_total = 5000;}
+			if(counter_bad > counter_total*0.5){printf("%i %i src -> good: %f bad: %f total%f\n",i,j,counter_good,counter_bad,counter_total);}
+			
+			mat00 = transform_inv(0,0);
+			mat01 = transform_inv(0,1);
+			mat02 = transform_inv(0,2);
+			mat03 = transform_inv(0,3);
+			mat10 = transform_inv(1,0);
+			mat11 = transform_inv(1,1);
+			mat12 = transform_inv(1,2);
+			mat13 = transform_inv(1,3);
+			mat20 = transform_inv(2,0);
+			mat21 = transform_inv(2,1);
+			mat22 = transform_inv(2,2);
+			mat23 = transform_inv(2,3);
+			
+			counter_good = 0;
+			counter_bad = 0;
+			counter_total = 0;
+			
+			depth_img = cvLoadImage(dst->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
+			depth_data	= (unsigned short *)depth_img->imageData;
+						
+			for(int k = 0; k < dst->validation_points.size(); k++){
+				float * vp = dst->validation_points.at(k);
+	
+				float x_tmp = vp[0];
+				float y_tmp = vp[1];
+				float z_tmp = vp[2];
+				
+				float x = x_tmp*mat00+y_tmp*mat01+z_tmp*mat02+mat03;
+				float y = x_tmp*mat10+y_tmp*mat11+z_tmp*mat12+mat13;
+				float z = x_tmp*mat20+y_tmp*mat21+z_tmp*mat22+mat23;
+		
+				//int d_data 	= int(0.5f+z/d_scaleing);
+				int w 		= int(0.5f+x/(z * invFocalX) + centerX);
+				int h 		= int(0.5f+y/(z * invFocalY) + centerY);
+				if(w>=0 && w < 640 && h >= 0 && h < 480){
+					float z_img = int(depth_data[640*h+w])*d_scaleing;
+					if(z_img > 0.01){
+						float diff = z-z_img;
+						if(fabs(diff) < limit)		{counter_good++;}
+						else if(z+0.075f < z_img)	{counter_bad++;}
+						counter_total++;
+					}
+				}
+			}
+			cvReleaseImage( &depth_img );
+			
+			if(counter_total < 5000){counter_total = 5000;}
+			if(counter_bad > counter_total*0.5){printf("%i %i dst -> good: %f bad: %f total%f\n",i,j,counter_good,counter_bad,counter_total);}
+			
+		}
+	}
+*/
 	printf("estimate done\n");
 }
 void Map3DPlanesGraphv4::setVisualization(boost::shared_ptr<pcl::visualization::PCLVisualizer> view){viewer = view;}
