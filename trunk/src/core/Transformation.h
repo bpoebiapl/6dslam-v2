@@ -34,7 +34,7 @@ class Transformation {
 		g2o::EdgeSE3 * g2oEdge;
 		
 		void show();
-		void show(pcl::visualization::CloudViewer * viewer);
+		void show(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer);
 	public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };

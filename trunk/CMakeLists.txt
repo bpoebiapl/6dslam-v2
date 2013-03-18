@@ -30,7 +30,7 @@ link_directories(EXTERNAL/g2o/trunk/lib)
 #link_directories(/usr/local/lib)
 
 include_directories(src/graph)
-add_library(graph src/graph/VertexCamera.cpp src/graph/VertexPoint3D.cpp src/graph/EdgeCameraPlane.cpp)
+add_library(graph src/graph/VertexCamera.cpp src/graph/vertex_point_xyz.cpp src/graph/EdgeCameraPlane.cpp)
 
 
 include_directories(src/FeatureDescriptor)

@@ -19,10 +19,10 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/console/parse.h>
 
-#include "graph/vertex_point_xy.cpp"
-#include "graph/vertex_se2.cpp"
-#include "graph/edge_se2_pointxy.cpp"
-#include "graph/se2.h"
+//#include "graph/vertex_point_xy.cpp"
+//#include "graph/vertex_se2.cpp"
+//#include "graph/edge_se2_pointxy.cpp"
+//#include "graph/se2.h"
 
 #include "VertexPlane.cpp"
 #include "EdgeSe3Plane.cpp"
