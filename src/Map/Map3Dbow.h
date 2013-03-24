@@ -22,7 +22,11 @@ class Map3Dbow: public Map3D
 	public:
 
 	string path;
+	int nr_words;
+	int nr_restarts;
+	int nr_iter;
 	Map3Dbow(string file_path);
+	Map3Dbow(string file_path, int words,int restarts, int iter);
 	Map3Dbow();
 	~Map3Dbow(); 
 	

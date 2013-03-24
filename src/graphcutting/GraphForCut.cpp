@@ -1,8 +1,9 @@
 #include "GraphForCut.h"
 
 using namespace std;
-
+GraphForCut::GraphForCut(){}
 GraphForCut::~GraphForCut(){}
+/*
 vector<vector<int> * > * GraphForCut::segment(GraphEdge * graph, int nr_edges, int nr_vertexes){
 	//printf("nr_vertexes: %i\n",nr_vertexes);
 	//printf("nr_edges: %i\n",nr_edges);
@@ -106,3 +107,4 @@ vector<vector<int> * > * GraphForCut::segment(GraphEdge * graph, int nr_edges, i
 	
 	return segments;
 }
+*/

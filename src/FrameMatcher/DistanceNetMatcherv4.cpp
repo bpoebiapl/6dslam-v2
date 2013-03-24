@@ -60,6 +60,7 @@ const bool debugg_DistanceNetMatcherv4 = false;
 
 Transformation * DistanceNetMatcherv4::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
+/*
 	printf("getting transform: %i %i\n",src->id,dst->id);
 	IplImage* img_combine;
 	int width;
@@ -290,4 +291,6 @@ Transformation * DistanceNetMatcherv4::getTransformation(RGBDFrame * src, RGBDFr
 	delete[] segment_id;
 	
 	return transformation;
+*/
+	return 0;
 }

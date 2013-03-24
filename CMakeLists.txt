@@ -69,7 +69,7 @@ target_link_libraries(TransformationFilter core)
 target_link_libraries(TransformationFilter opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 include_directories(src/FrameMatcher)
-add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/BowAICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/DistanceNetMatcherv5.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp)
+add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/BowAICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/DistanceNetMatcherv5.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp src/FrameMatcher/GraphCutMatcherv1.cpp)
 target_link_libraries(FrameMatcher ${PCL_LIBRARIES})
 target_link_libraries(FrameMatcher core)
 target_link_libraries(FrameMatcher TransformationFilter)
@@ -99,6 +99,24 @@ target_link_libraries(kinect_at_home_test ${OpenCV_LIBS})
 target_link_libraries(kinect_at_home_test map3d)
 target_link_libraries(kinect_at_home_test g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
 target_link_libraries(kinect_at_home_test opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
+
+##################
+
+add_executable(kinect_at_home_bow_setup src/kinect_at_home_bow_setup.cpp)
+target_link_libraries(kinect_at_home_bow_setup ${PCL_LIBRARIES})
+target_link_libraries(kinect_at_home_bow_setup ${OpenCV_LIBS})
+target_link_libraries(kinect_at_home_bow_setup map3d)
+target_link_libraries(kinect_at_home_bow_setup g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
+target_link_libraries(kinect_at_home_bow_setup opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
+
+##################
+
+add_executable(kinect_at_home_basic src/kinect_at_home_basic.cpp)
+target_link_libraries(kinect_at_home_basic ${PCL_LIBRARIES})
+target_link_libraries(kinect_at_home_basic ${OpenCV_LIBS})
+target_link_libraries(kinect_at_home_basic map3d)
+target_link_libraries(kinect_at_home_basic g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
+target_link_libraries(kinect_at_home_bow_setup opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 ##################
 

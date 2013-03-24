@@ -19,8 +19,11 @@
 
 using namespace std;
 
-Map3Dbow::Map3Dbow(string file_path){
+Map3Dbow::Map3Dbow(string file_path, int words,int restarts, int iter){
 	path=file_path;
+	nr_words = words;
+	nr_restarts = restarts;
+	nr_iter = iter;
 }
 Map3Dbow::Map3Dbow(){
 	path="output/bowTest2_%i.feature.surf";
@@ -36,18 +39,28 @@ void Map3Dbow::estimate(){
 	printf("estimate\n");
 	vector<FeatureDescriptor *> descriptors;
 	for(int i  = 0; i < frames.size(); i++){
+		printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\nframe:%i\n",i);
 		KeyPointSet * current = frames.at(i)->keypoints;
-		for(int j = 0; j < current->valid_key_points.size(); j++){descriptors.push_back(current->valid_key_points.at(j)->descriptor);}
-		for(int j = 0; j < current->invalid_key_points.size(); j++){descriptors.push_back(current->invalid_key_points.at(j)->descriptor);}	
+		for(int j = 0; j < current->valid_key_points.size(); j++){
+			descriptors.push_back(current->valid_key_points.at(j)->descriptor);
+			//printf("good:%i\n",descriptors.size());
+			//descriptors.back()->print();
+			}
+		/*
+		for(int j = 0; j < current->invalid_key_points.size(); j++){
+			descriptors.push_back(current->invalid_key_points.at(j)->descriptor);
+			printf("bad:%i\n",descriptors.size());
+			descriptors.back()->print();
+		}
+		*/	
 	}
-	vector<FeatureDescriptor * > * bags = kmeans(descriptors, 1, 10, 500);
+	vector<FeatureDescriptor * > * bags = kmeans(descriptors, nr_restarts, nr_iter, nr_words);
 	
 	for(int i = 0; i < bags->size(); i++){
 		char buff[250];
 		sprintf(buff,path.c_str(),i);
 		bags->at(i)->store(string(buff));
 		bags->at(i)->print();
-		//new OrbFeatureDescriptor(string(buff));
 	}
 	printf("estimate done\n");
 }
@@ -64,7 +77,16 @@ vector<FeatureDescriptor * > * Map3Dbow::kmeans(vector<FeatureDescriptor *> inpu
 	{
 		printf("--------------------------------------------------------------------------------\n");
 		vector<FeatureDescriptor * > * centers = new vector<FeatureDescriptor * >();
-		for(int j = 0; j < nr_clusters; j++){centers->push_back(input.at(rand()%input.size())->clone());}
+		for(int j = 0; j < nr_clusters; j++){
+			//printf("%i\n",j);
+			int rnd = rand()%input.size();
+			//printf("rnd:%i\n",rnd);
+			FeatureDescriptor * fd_inp = input.at(rnd);
+			//printf("%ld\n",fd_inp);
+			//fd_inp->print();
+			FeatureDescriptor * fd = fd_inp->clone();
+			centers->push_back(fd);
+		}
 		float sum;
 		
 		for(int iter = 0; iter < iterations; iter++)

@@ -1,4 +1,4 @@
-#include "DistanceNetMatcherv5.h"
+#include "GraphCutMatcherv1.h"
 #include "GraphForCut.h"
 #include <vector>
 
@@ -6,67 +6,25 @@ bool comparison_distancev3 (linkData * i,linkData * j) { return (i->distance<j->
 
 using namespace std;
 
-DistanceNetMatcherv5::DistanceNetMatcherv5(){
-	name = "DistanceNetMatcherv5";
-	max_points = 200;
-	nr_iter = 15;
-	std_dist = 0.01;
-	lookup_size = 100000;
-	bounds = 1.96*std_dist;
-	probIgnore = 0.001;
-	
-	movement_prior = true;
-	movementPerFrame = 0.02f;
-	feature_prior = true;
-	feature_smoothing = 0.01f;
-	
-	lookup = new float[lookup_size];
-	lookup_step = 2*bounds/float(lookup_size+1);
-	float lookup_size_half = float(lookup_size)/2;
-	float norm = 1/(std_dist*sqrt(2*3.14));
-	for(int i = 0; i < lookup_size; i++){
-		float tmp = (i-lookup_size_half)*lookup_step;
-		lookup[i] = norm*exp(-0.5*(tmp*tmp)/(std_dist*std_dist));
-	}
+//GraphCutMatcherv1::GraphCutMatcherv1(){}
+
+GraphCutMatcherv1::GraphCutMatcherv1(){
+	feature_limit = 0.075;
+	point_to_point_zero = 0.015;
+	point_to_plane_zero = 0.01;
+	plane_to_plane_zero = 0.05;
 }
 
-DistanceNetMatcherv5::DistanceNetMatcherv5(int iter_,int max_points_, float std_dist_, float bounds_, bool movement_prior_, float movementPerFrame_, bool feature_prior_, float feature_smoothing_){
-	name = "DistanceNetMatcherv5";
-	max_points = max_points_;
-	nr_iter = iter_;
-	std_dist = std_dist_;
-	lookup_size = 100000;
-	bounds = bounds_;
-	probIgnore = 0.001;
-	
-	movement_prior = movement_prior_;
-	movementPerFrame = movementPerFrame_;
-	feature_prior = feature_prior_;
-	feature_smoothing = feature_smoothing_;
-	
-	lookup = new float[lookup_size];
-	lookup_step = 2*bounds/float(lookup_size+1);
-	float lookup_size_half = float(lookup_size)/2;
-	float norm = 1/(std_dist*sqrt(2*3.14));
-	for(int i = 0; i < lookup_size; i++){
-		float tmp = (i-lookup_size_half)*lookup_step;
-		lookup[i] = norm*exp(-0.5*(tmp*tmp)/(std_dist*std_dist));
-	}
-}
-
-DistanceNetMatcherv5::~DistanceNetMatcherv5(){printf("delete DistanceNetMatcherv5\n");}
+GraphCutMatcherv1::~GraphCutMatcherv1(){printf("delete GraphCutMatcherv1\n");}
 
 using namespace std;
-const bool debugg_DistanceNetMatcherv5 = true;
+const bool debugg_GraphCutMatcherv1 = true;
 
-Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFrame * dst)
-{
-/*
-	//printf("getting transform: %i %i\n",src->id,dst->id);
+Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame * dst){
 	IplImage* img_combine;
 	int width;
 	int height;
-	if(debugg_DistanceNetMatcherv5){	
+	if(debugg_GraphCutMatcherv1){	
 		IplImage* rgb_img_src 	= cvLoadImage(src->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 		char * data_src = (char *)rgb_img_src->imageData;
 		IplImage* rgb_img_dst 	= cvLoadImage(dst->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
@@ -93,31 +51,34 @@ Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFr
 		cvReleaseImage( &rgb_img_src );
 		cvReleaseImage( &rgb_img_dst );
 	}
-
-
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 	
 	int src_nr_points = src->keypoints->valid_key_points.size();
-	if(src_nr_points > max_points){src_nr_points = max_points;}
 	int dst_nr_points = dst->keypoints->valid_key_points.size();
-	if(dst_nr_points > max_points){dst_nr_points = max_points;}
 	
-	vector<KeyPoint * > src_keypoints;
-	for(int i = 0; i < src_nr_points; i++){src_keypoints.push_back(src->keypoints->valid_key_points.at(i));}
-	vector<KeyPoint * > dst_keypoints;
-	for(int i = 0; i < dst_nr_points; i++){dst_keypoints.push_back(dst->keypoints->valid_key_points.at(i));}
+	int src_nr_planes = src->planes->size();
+	int dst_nr_planes = dst->planes->size();
+	
+	vector<KeyPoint * > src_keypoints = src->keypoints->valid_key_points;
+	vector<KeyPoint * > dst_keypoints = dst->keypoints->valid_key_points;
+	
+	vector<Plane *> * src_planes = src->planes;
+	vector<Plane *> * dst_planes = dst->planes;
 	
 	vector<int> src_matches = vector<int>();
 	vector<int> dst_matches = vector<int>();
+	vector<float> val_matches = vector<float>();
 	
 	for(int i = 0; i < src_nr_points; i++){
 		for(int j = 0; j < dst_nr_points; j++){
 			float d = src_keypoints.at(i)->descriptor->distance(dst_keypoints.at(j)->descriptor);
-			if(d < 0.1){
+			if(d < feature_limit){
 				src_matches.push_back(i);
 				dst_matches.push_back(j);
-				if(false && debugg_DistanceNetMatcherv5){
+				val_matches.push_back(d);
+				
+				if(false && debugg_GraphCutMatcherv1){
 					Point * i_src = src_keypoints.at(i)->point;
 					Point * i_dst = dst_keypoints.at(j)->point;
 					cvLine(img_combine,cvPoint(i_src->w ,i_src->h),cvPoint(i_dst->w+width,i_dst->h),cvScalar(0, 0, 255, 0),1, 8, 0);
@@ -127,10 +88,79 @@ Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFr
 			}
 		}
 	}
-		
-	float zero_place = 0.015f;
+
 	
+	printf("src_matches.size() = %i\n",src_matches.size());
 	gettimeofday(&start, NULL);
+	vector<GraphEdge> edges;
+	edges.resize((src_matches.size()*(src_matches.size()-1))/2+src_nr_planes*src_nr_planes*dst_nr_planes*dst_nr_planes+src_matches.size()*src_nr_planes*dst_nr_planes);
+	
+	int counter = 0;
+	for(int i = 0; i < src_matches.size();i++){
+		Point * i_src = src_keypoints.at(src_matches.at(i))->point;
+		Point * i_dst = dst_keypoints.at(dst_matches.at(i))->point;
+		
+		for(int j = 0; j < i;j++){
+			Point * j_src = src_keypoints.at(src_matches.at(j))->point;
+			Point * j_dst = dst_keypoints.at(dst_matches.at(j))->point;
+			
+			GraphEdge & tmp = edges.at(counter);
+			tmp.value = (point_to_point_zero-fabs(i_src->distance(j_src)-i_dst->distance(j_dst)))/point_to_point_zero;
+			tmp.vertexes[0] = i;
+			tmp.vertexes[1] = j;
+			tmp.nr_vertexes = 2;
+			counter++;
+		}
+	}
+	vector<int> src_planes_matches = vector<int>();
+	vector<int> dst_planes_matches = vector<int>();
+	for(int i = 0; i < src_nr_planes;i++){
+		for(int j = 0; j < dst_nr_planes;j++){
+			src_planes_matches.push_back(i);
+			dst_planes_matches.push_back(j);
+			printf("%i -> planes:%i %i\n",src_planes_matches.size()-1,i,j);
+		}
+	}
+	int plane_start = counter;
+	for(int i = 0; i < src_planes_matches.size();i++){
+		Plane * src_plane = src->planes->at(src_planes_matches.at(i));
+		Plane * dst_plane = dst->planes->at(dst_planes_matches.at(i));
+		for(int j = 0; j < src_matches.size();j++){
+			Point * src_point = src_keypoints.at(src_matches.at(j))->point;
+			Point * dst_point = dst_keypoints.at(dst_matches.at(j))->point;
+			GraphEdge & tmp = edges.at(counter);
+			tmp.value = (point_to_plane_zero-fabs(src_plane->distance(src_point)-dst_plane->distance(dst_point)))/point_to_plane_zero;
+			tmp.vertexes[0] = i+plane_start;
+			tmp.vertexes[1] = j;
+			tmp.nr_vertexes = 2;
+			counter++;
+		}
+	}
+	
+	for(int i = 0; i < src_planes_matches.size();i++){
+		Plane * src_plane_i = src->planes->at(src_planes_matches.at(i));
+		Plane * dst_plane_i = dst->planes->at(dst_planes_matches.at(i));
+		for(int j = 0; j < i;j++){
+			Plane * src_plane_j = src->planes->at(src_planes_matches.at(j));
+			Plane * dst_plane_j = dst->planes->at(dst_planes_matches.at(j));
+			double src_angle = src_plane_i->angle(src_plane_j);
+			double dst_angle = dst_plane_i->angle(dst_plane_j);
+			double diff = fabs(src_angle-dst_angle);
+			GraphEdge & tmp = edges.at(counter);
+			tmp.value = (plane_to_plane_zero-fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)))/plane_to_plane_zero;
+			tmp.vertexes[0] = i+plane_start;
+			tmp.vertexes[1] = j+plane_start;
+			tmp.nr_vertexes = 2;
+			counter++;
+		}
+	}
+	edges.resize(counter);
+	printf("counter:%i, size: %i\n",counter,edges.size());
+	gettimeofday(&end, NULL);
+	float setup_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	printf("setup cost: %f\n",setup_time);
+	gettimeofday(&start, NULL);
+	/*
 	GraphEdge * newgraph = new GraphEdge[src_matches.size()*src_matches.size()];
 	int current = 0;
 	for(int i = 0; i < src_matches.size();i++){
@@ -167,7 +197,7 @@ Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFr
 	int * seg_g;
 	int * seg_b;
 
-	if(debugg_DistanceNetMatcherv5){
+	if(debugg_GraphCutMatcherv1){
 		seg_r = new int[src_matches.size()];
 		seg_g = new int[src_matches.size()];
 		seg_b = new int[src_matches.size()];
@@ -216,7 +246,7 @@ Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFr
 		Point * i_src = src_keypoints.at(src_matches.at(i))->point;
 		Point * i_dst = dst_keypoints.at(dst_matches.at(i))->point;
 		transformation->matches.push_back(make_pair (src_keypoints.at(src_matches.at(i)), dst_keypoints.at(dst_matches.at(i))));
-		if(debugg_DistanceNetMatcherv5){
+		if(debugg_GraphCutMatcherv1){
 			cvLine(img_combine,cvPoint(i_src->w ,i_src->h),cvPoint(i_dst->w+width,i_dst->h),cvScalar(0, 255, 0, 0),1, 8, 0);
 			cvCircle(img_combine,cvPoint(i_src->w, i_src->h), 5,cvScalar(seg_b[si], seg_g[si], seg_r[si], 0),2, 8, 0);
 			cvCircle(img_combine,cvPoint(i_dst->w+width,i_dst->h), 5,cvScalar(seg_b[si], seg_g[si], seg_r[si], 0),2, 8, 0);
@@ -229,18 +259,18 @@ Transformation * DistanceNetMatcherv5::getTransformation(RGBDFrame * src, RGBDFr
 		for(int i = 0; i < transformation->weight; i++){tfc.add(transformation->matches.at(i).first->point->pos, transformation->matches.at(i).second->point->pos);}
 		transformation->transformationMatrix = tfc.getTransformation().matrix();
 	}
-
-	if(debugg_DistanceNetMatcherv5){
-		delete[] seg_r;
-		delete[] seg_g;
-		delete[] seg_b;
+*/
+	if(debugg_GraphCutMatcherv1){
+		//delete[] seg_r;
+		//delete[] seg_g;
+		//delete[] seg_b;
 		printf("done\n");
 		cvShowImage("combined image", img_combine);
 		cvWaitKey(0);
 		cvReleaseImage( &img_combine);
 	}
 
-	return transformation;
-*/
+	//return transformation;
+
 	return 0;
 }
