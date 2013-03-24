@@ -22,16 +22,17 @@ using namespace std;
 
 struct GraphEdge {
 	float value;
-	unsigned int vertex1;
-	unsigned int vertex2;
+	int vertexes[4];
+	int nr_vertexes;
 };
 
 
 class GraphForCut
 {
 	public:
-		virtual ~GraphForCut();
-		virtual vector<vector<int> * > * segment(GraphEdge * graph, int nr_edges, int nr_vertexes);
+	GraphForCut();
+	virtual ~GraphForCut();
+	//virtual vector<vector<int> * > * segment(GraphEdge * graph, int nr_edges, int nr_vertexes);
 };
 
 #endif

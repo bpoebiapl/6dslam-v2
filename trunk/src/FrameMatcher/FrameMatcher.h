@@ -53,5 +53,6 @@ class FrameMatcher
 #include "DistanceNetMatcherv3.h"
 #include "DistanceNetMatcherv4.h"
 #include "DistanceNetMatcherv5.h"
+#include "GraphCutMatcherv1.h"
 
 #endif

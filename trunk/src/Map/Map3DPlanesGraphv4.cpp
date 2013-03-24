@@ -320,12 +320,14 @@ vector< GraphEdge > * Map3DPlanesGraphv4::match_planes(RGBDFrame * src, RGBDFram
 			float dst_score = float(dst_inliers)/float(dst_possible_inliers);
 			GraphEdge ge;
 			ge.value = src_score*dst_score;
-			ge.vertex1 = j;
-			ge.vertex2 = k;
+			ge.vertexes[0] = j;
+			ge.vertexes[1] = k;
+			ge.nr_vertexes = 2;
 			output->push_back(ge);
 			//if(src_score*dst_score > 0.95){output->push_back(make_pair(j,k));}
 		}
 	}
+	
 /*
 	IplImage* src_rgb_img 	= cvLoadImage(src->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 	IplImage* src_depth_img = cvLoadImage(src->input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
