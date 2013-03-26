@@ -3,8 +3,44 @@
 using namespace std;
 GraphForCut::GraphForCut(){}
 GraphForCut::~GraphForCut(){}
+
+vector<vector<int> * > * GraphForCut::segment(vector<GraphEdge> edges, int nr_vertexes){
+	vector< vector< int > * > * segments = new vector< vector< int > * >();
+	float * vertex_values = new float[nr_vertexes];
+	for(int i = 0; i < nr_vertexes; i++){vertex_values[i]=0;}
+	int nr_edges = edges.size();
+	for(int i = 0; i < nr_edges; i++){
+		GraphEdge current = edges.at(i);
+		float val = current.value;
+		int current_nr_vertexes = current.nr_vertexes;
+		int * current_vertexes = current.vertexes;
+		for(int j = 0; j < current_nr_vertexes; j++){
+			vertex_values[current_vertexes[j]]+=val;
+		}
+	}
+	vector< int > * current_segment = new vector< int >();
+	for(int i = 0; i < nr_vertexes; i++){current_segment->push_back(i);}
+	while(current_segment->size() > 1){
+		//printf("%i\n",current_segment->size());
+		int worst_index_val = current_segment->at(0);
+		int worst_index = 0;
+		float worst = vertex_values[worst_index_val];
+
+		for(int i = 1; i < current_segment->size(); i++){
+			int current = current_segment->at(i);
+			float val = vertex_values[current];
+			if(worst > val){
+				worst = val;
+				worst_index_val = current;
+				worst_index = i;
+			}
+		}
+		
+		current_segment->at(worst_index) = current_segment->back();
+		current_segment->pop_back();
+	}
+	delete current_segment;
 /*
-vector<vector<int> * > * GraphForCut::segment(GraphEdge * graph, int nr_edges, int nr_vertexes){
 	//printf("nr_vertexes: %i\n",nr_vertexes);
 	//printf("nr_edges: %i\n",nr_edges);
 	int * edge_counter = new int[nr_vertexes];
@@ -38,8 +74,6 @@ vector<vector<int> * > * GraphForCut::segment(GraphEdge * graph, int nr_edges, i
 		edges_ind[v1][v1_c] = v2;	edges_ind[v2][v2_c] = v1;	
 		edge_counter_tmp[v1]++;		edge_counter_tmp[v2]++;
 	}
-	
-	vector< vector< int > * > * segments = new vector< vector< int > * >();
 	
 	int current_segment_id = 0;
 	vector< int > * current_segment = new vector< int >();
@@ -104,7 +138,7 @@ vector<vector<int> * > * GraphForCut::segment(GraphEdge * graph, int nr_edges, i
 	delete[] edge_counter;
 	delete[] segment_id;
 	delete[] current_segment_ind;
-	
+*/
+	delete[] vertex_values;
 	return segments;
 }
-*/

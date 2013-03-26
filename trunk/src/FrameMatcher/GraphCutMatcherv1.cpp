@@ -118,7 +118,7 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 		for(int j = 0; j < dst_nr_planes;j++){
 			src_planes_matches.push_back(i);
 			dst_planes_matches.push_back(j);
-			printf("%i -> planes:%i %i\n",src_planes_matches.size()-1,i,j);
+			//printf("%i -> planes:%i %i\n",src_planes_matches.size()-1,i,j);
 		}
 	}
 	int plane_start = counter;
@@ -137,9 +137,9 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 			tmp.nr_vertexes = 2;
 			counter++;
 		}
-		printf("%i->%i %i->total:%i\n",i,src_planes_matches.at(i),dst_planes_matches.at(i),total);
+		//printf("%i->%i %i->total:%i\n",i,src_planes_matches.at(i),dst_planes_matches.at(i),total);
 	}
-	printf("angles:\n");
+	//printf("angles:\n");
 	for(int i = 0; i < src_planes_matches.size();i++){
 		Plane * src_plane_i = src->planes->at(src_planes_matches.at(i));
 		Plane * dst_plane_i = dst->planes->at(dst_planes_matches.at(i));
@@ -152,7 +152,7 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 			GraphEdge & tmp = edges.at(counter);
 			tmp.value = (plane_to_plane_zero-fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)))/plane_to_plane_zero;
 			//if(tmp.value>0){printf("%i %i->%f\n",i,j,tmp.value);}
-			printf("%i %i->%f->%f\n",i,j,fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)),tmp.value);
+			//printf("%i %i->%f->%f\n",i,j,fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)),tmp.value);
 			tmp.vertexes[0] = i+plane_start;
 			tmp.vertexes[1] = j+plane_start;
 			tmp.nr_vertexes = 2;
@@ -165,6 +165,13 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 	float setup_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	printf("setup cost: %f\n",setup_time);
 	gettimeofday(&start, NULL);
+	GraphForCut test;
+	vector<vector<int> * > * seg = test.segment(edges,src_matches.size()+src_planes_matches.size());
+
+
+	gettimeofday(&end, NULL);
+	float cut_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	printf("cut cost: %f\n",cut_time);
 	/*
 	GraphEdge * newgraph = new GraphEdge[src_matches.size()*src_matches.size()];
 	int current = 0;
@@ -187,14 +194,6 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 	float setup_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 	printf("setup cost: %f\n",setup_time);
 	gettimeofday(&start, NULL);
-	
-	GraphForCut test;
-	vector<vector<int> * > * seg = test.segment(newgraph,current,src_matches.size());
-
-
-	gettimeofday(&end, NULL);
-	float cut_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	printf("cut cost: %f\n",cut_time);
 	
 	delete[] newgraph;
 

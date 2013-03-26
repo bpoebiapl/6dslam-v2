@@ -115,7 +115,7 @@ vector<Plane * > * RGBDSegmentationScaleSearch::segment(IplImage * rgb_img,IplIm
 										if(z[i][j] != 0){
 											float d = (p->distance(x[i][j],y[i][j],z[i][j]));
 											//if(fabs(d) < 0.1){printf("%.4f ",d);}
-											if(fabs(d) < 0.02){
+											if(fabs(d) < 0.015){
 												if(display_here){cvRectangle(img_clone,cvPoint(i, j),cvPoint(i, j),cvScalar(255, 0, 255, 0), 1 , 8, 0);}
 												s_x->push_back(x[i][j]);
 												s_y->push_back(y[i][j]);
@@ -147,7 +147,7 @@ vector<Plane * > * RGBDSegmentationScaleSearch::segment(IplImage * rgb_img,IplIm
 						}
 						if(good_plane){
 							IplImage * img_clone;
-							bool display_here = false;
+							bool display_here = true;
 							if(display_here){
 								img_clone = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
 								cvCopy( rgb_img, img_clone, NULL );
@@ -155,7 +155,7 @@ vector<Plane * > * RGBDSegmentationScaleSearch::segment(IplImage * rgb_img,IplIm
 							for(int i = 0; i < width; i++){
 								for(int j = 0; j < height; j++){
 									if(z[i][j] != 0){
-										if(fabs(p->distance(x[i][j],y[i][j],z[i][j])) < 0.02){
+										if(fabs(p->distance(x[i][j],y[i][j],z[i][j])) < 0.015){
 											if(display_here){cvRectangle(img_clone,cvPoint(i, j),cvPoint(i, j),cvScalar(255, 0, 255, 0), 1 , 8, 0);}
 											z[i][j] = 0;
 										}

@@ -32,7 +32,7 @@ class GraphForCut
 	public:
 	GraphForCut();
 	virtual ~GraphForCut();
-	//virtual vector<vector<int> * > * segment(GraphEdge * graph, int nr_edges, int nr_vertexes);
+	virtual vector<vector<int> * > * segment(vector<GraphEdge> graph, int nr_vertexes);
 };
 
 #endif
