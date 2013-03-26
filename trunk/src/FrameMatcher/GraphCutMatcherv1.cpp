@@ -125,18 +125,21 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 	for(int i = 0; i < src_planes_matches.size();i++){
 		Plane * src_plane = src->planes->at(src_planes_matches.at(i));
 		Plane * dst_plane = dst->planes->at(dst_planes_matches.at(i));
+		int total = 0;
 		for(int j = 0; j < src_matches.size();j++){
 			Point * src_point = src_keypoints.at(src_matches.at(j))->point;
 			Point * dst_point = dst_keypoints.at(dst_matches.at(j))->point;
 			GraphEdge & tmp = edges.at(counter);
 			tmp.value = (point_to_plane_zero-fabs(src_plane->distance(src_point)-dst_plane->distance(dst_point)))/point_to_plane_zero;
+			if(tmp.value > 0.0){total++;}
 			tmp.vertexes[0] = i+plane_start;
 			tmp.vertexes[1] = j;
 			tmp.nr_vertexes = 2;
 			counter++;
 		}
+		printf("%i->%i %i->total:%i\n",i,src_planes_matches.at(i),dst_planes_matches.at(i),total);
 	}
-	
+	printf("angles:\n");
 	for(int i = 0; i < src_planes_matches.size();i++){
 		Plane * src_plane_i = src->planes->at(src_planes_matches.at(i));
 		Plane * dst_plane_i = dst->planes->at(dst_planes_matches.at(i));
@@ -148,6 +151,8 @@ Transformation * GraphCutMatcherv1::getTransformation(RGBDFrame * src, RGBDFrame
 			double diff = fabs(src_angle-dst_angle);
 			GraphEdge & tmp = edges.at(counter);
 			tmp.value = (plane_to_plane_zero-fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)))/plane_to_plane_zero;
+			//if(tmp.value>0){printf("%i %i->%f\n",i,j,tmp.value);}
+			printf("%i %i->%f->%f\n",i,j,fabs(src_plane_i->angle(src_plane_j)-dst_plane_i->angle(dst_plane_j)),tmp.value);
 			tmp.vertexes[0] = i+plane_start;
 			tmp.vertexes[1] = j+plane_start;
 			tmp.nr_vertexes = 2;

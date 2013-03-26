@@ -49,7 +49,7 @@ target_link_libraries(FeatureExtractor ${PCL_LIBRARIES})
 target_link_libraries(FeatureExtractor opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 include_directories(src/RGBDSegmentation)
-add_library(RGBDSegmentation src/RGBDSegmentation/RGBDSegmentation.cpp src/RGBDSegmentation/RGBDSegmentationBase.cpp src/RGBDSegmentation/RGBDSegmentationTest.cpp src/RGBDSegmentation/RGBDSegmentationDummy.cpp src/RGBDSegmentation/RGBDSegmentationPCL.cpp)
+add_library(RGBDSegmentation src/RGBDSegmentation/RGBDSegmentation.cpp src/RGBDSegmentation/RGBDSegmentationBase.cpp src/RGBDSegmentation/RGBDSegmentationTest.cpp src/RGBDSegmentation/RGBDSegmentationDummy.cpp src/RGBDSegmentation/RGBDSegmentationPCL.cpp src/RGBDSegmentation/RGBDSegmentationScaleSearch.cpp)
 
 include_directories(src/core)
 add_library(core src/core/RGBDFrame.cpp src/core/Transformation.cpp)

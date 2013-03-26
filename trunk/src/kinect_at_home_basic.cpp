@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	map = new Map3DPlanesGraphv4();
 	map->matcher = new GraphCutMatcherv1();//new AICK();
 	map->loopclosure_matcher = map->matcher;
-	map->segmentation = new RGBDSegmentationBase();
+	map->segmentation = new RGBDSegmentationScaleSearch();//new RGBDSegmentationBase();
 	map->segmentation->calibration = calib0;
 	map->extractor = surf;
 	
