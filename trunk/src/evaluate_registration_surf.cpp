@@ -453,7 +453,7 @@ int main(int argc, char **argv)
 	}
 
 	while(nr_done_tasks() < added_tasks){
-		gettimeofday(&test_end, NULL);ss
+		gettimeofday(&test_end, NULL);
 		printf("%f %i/%i\n",(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f,nr_done_tasks(),added_tasks);
 		usleep(500000);
 	}
