@@ -1,5 +1,5 @@
-surf_data.m
-orb_data.m
+run surf_data
+run orb_data
 
 disp('Running matlab script');
 %plot(log2(1:1024));
