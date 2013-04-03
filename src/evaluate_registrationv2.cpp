@@ -23,7 +23,7 @@
 using namespace std;
 using namespace Eigen;
 
-string out_path = "output2/";
+string out_path = "output4/";
 
 struct groundtruth {
 	double timestamp;
@@ -110,6 +110,7 @@ bool mycomparison1 (test_task * i,test_task * j) {return (i->src->frame->id - i-
 void * start_test_thread( void *ptr ){
 	bool run = true;
 	while(run){
+		
 		pthread_mutex_lock( &tasks_mutex );
 		if(tasks.size() > 0)
 		{
@@ -124,8 +125,8 @@ void * start_test_thread( void *ptr ){
 			pthread_mutex_unlock(&done_tasks_mutex);
 		}else{
 			pthread_mutex_unlock(&tasks_mutex);
-			usleep(1000);
-			run = false;
+			usleep(100000);
+			//run = false;
 		}
 	}
 	//printf("stopping thread\n");
@@ -268,7 +269,7 @@ void * transform_start_test_thread( void *ptr )
 }
 
 
-vector< frame_data * > * getFrameData(string path,Map3D * map){
+vector< frame_data * > * getFrameData(string path,Map3D * map, int max){
 	string path_gt		= path+"/groundtruth.txt";
 	string path_rgb		= path+"/rgb.txt";
 	string path_depth	= path+"/depth.txt";
@@ -281,7 +282,9 @@ vector< frame_data * > * getFrameData(string path,Map3D * map){
 	vector<FeatureDescriptor *> * centers = new vector<FeatureDescriptor *>();
 	vector< frame_data * > * all_frames = new vector< frame_data * >();	
 	if (asso_file.is_open()){
-		while ( asso_file.good() ){
+		int counter = 0;
+		while ( asso_file.good() && counter < max){
+			counter++;
 			getline (asso_file,line);
 			if(line[0] != '#'){
 				int space1 = line.find(" ");
@@ -349,23 +352,31 @@ int getdir (string dir, vector<string> &files)
         cout << "Error(" << errno << ") opening " << dir << endl;
         return errno;
     }
-    while ((dirp = readdir(dp)) != NULL) {
+    int size_now = 0;
+    int i;
+    for(i = 0; (dirp = readdir(dp)) != NULL; i++) {
+    	//if(i >= size_now){files.resize(size_now+10000);size_now+=files.size();}
+        //files.at(i) = string(dirp->d_name);
         files.push_back(string(dirp->d_name));
     }
+    //files.resize(i);
     closedir(dp);
     return 0;
 }
 
 void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatcher * > matchers, vector<int> backing)
 {
+	transform_done_tasks = 0;
+	
 	vector<vector< Analyzation_data * > > matchers_data;	
 	matchers_data.push_back(vector< Analyzation_data * >());
 	
 	printf("starting test\n");
 	for(unsigned int k = 0; k < matchers.size(); k++){
-		int max_backing = backing.at(k);
+		printf("matcher: %i\n",k);
 		for(int i = 0; i < (int)all_frames->size(); i++){
-			for(int j = i-1; j >=  max(0,i-max_backing); j-=10){
+			//printf("frame: %i\n",i);
+			for(int j = i-1; j >=  max(0,i-backing.at(k)); j-=1){
 				char fpath [150];
 				sprintf(fpath,"%s%s_%i_%i_%i.task",out_path.c_str(),dataset.c_str(),i,j,k);
 				ifstream task_file (fpath);
@@ -412,11 +423,11 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	
 	printf("matchers setup\n");
 	
-	transform_tasks = new vector<test_task * >();
 	vector<string> files = vector<string>();
 	getdir(out_path,files);
 	int transform_added_tasks = 0;
 	
+	printf("files.size() = %i\n",files.size());
     for (unsigned int i = 0;i < files.size();i++) {
         if(files.at(i).find(dataset)==0 && files.at(i).find("_") == dataset.length()){
         	ifstream task_file ((out_path+files.at(i)).c_str());
@@ -430,7 +441,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 				task_file.read (b_char,size);
 				task_file.close();
 				
-				printf("%f\n",float(i)/float(files.size()));
+				if(rand()%100==0){printf("%f\n",float(i)/float(files.size()));}
 				
 				if(b_int[3] == 0){
 					test_task * t = new test_task();
@@ -454,11 +465,6 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	sort(transform_tasks->begin(),transform_tasks->end(),mycomparison1);
 	pthread_mutex_unlock(&transform_tasks_mutex);
 	
-	for(int i = 0; i < 12; i++){
-		pthread_t mythread;
-		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
-	}
-    
 	struct timeval test_start, test_end;
 	gettimeofday(&test_start, NULL);
 	printf("transform_added_tasks:%i\n",transform_added_tasks);
@@ -470,15 +476,16 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 }
 
 void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMatcher * > matchers,float max_thresh_rot,float max_thresh_pos,int thresh_steps){
-	printf("starting analyze\n");
+	//printf("starting analyze %s\n",dataset.c_str());
 	vector<string> files = vector<string>();
 	getdir(out_path,files);
-	printf("nr files: %i\n",files.size());
+	//printf("nr files: %i\n",files.size());
 	//printf("%s\n",out_path.c_str());
 	vector< vector< vector<Analyzation_data * > * > * > * results = new vector<vector<vector<Analyzation_data * > * > * >();
 	for (unsigned int i = 0;i < files.size();i++) {
+		//if(i%1000 == 0){printf("%i:%s\n",i,files.at(i).c_str());}
 		if(files.at(i).find(dataset)==0 && files.at(i).find("_") == dataset.length()){
-			//if(i%1 == 0){printf("%i:%s\n",i,files.at(i).c_str());}
+			
 			ifstream task_file ((out_path+files.at(i)).c_str());
 			if (task_file.is_open()){
 				task_file.seekg(0,ifstream::end);
@@ -532,7 +539,9 @@ void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMat
 						
 						results->at(matcher_id)->at(step)->push_back(data);
 
-					}else{printf("not calculated\n");}
+					}else{
+						//printf("not calculated\n");
+					}
 					delete buffer_char;
 				}
 	    	}else{printf("failed to open file\n");}
@@ -571,31 +580,7 @@ void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMat
 			}
 			printf("; ");
 		}
-
 		printf("];\n");
-		/*
-		printf("%s_%i_%s_mat_rot = [ ",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
-		for(int step = 1; step < results->at(matcher)->size(); step++)
-		{
-			vector<Analyzation_data * > * current = results->at(matcher)->at(step);
-			
-			for(float thresh_counter = 1; thresh_counter <= thresh_steps; thresh_counter++)
-			{
-				float thresh = max_thresh_pos*float(thresh_counter)/float(thresh_steps);
-				float nr_good = 0;
-				float nr_bad = 0;
-				for(int nr = 0; nr < current->size(); nr++)
-				{
-					Analyzation_data * data = current->at(nr);
-					if(data->trans_error < thresh){nr_good++;}
-					else						{nr_bad++;}
-				}
-				printf("%.5f ",float(nr_good)/float(nr_good+nr_bad));
-			}
-			printf("; ");
-		}
-		printf("];\n");
-		*/
 		printf("%s_%i_%s_avg_time = ",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
 		double avg_time = 0;
 		double total_trans = 0;
@@ -616,37 +601,6 @@ void analyze(vector< frame_data * > * all_frames, string dataset,vector<FrameMat
 int main(int argc, char **argv)
 {
 	printf("--------------------START--------------------\n");
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-	viewer->initCameraParameters ();
-	viewer->setBackgroundColor (1, 1, 1);
-
-	/*
-	string bow_path = "output/bowTest_%i.feature.ORB";
-
-	vector<FeatureDescriptor * > words;
-	for(int i = 0; i < 300; i++){
-		char buff[50];
-		sprintf(buff,"output/bowTest_%i.feature.ORB",i);
-		words.push_back(new OrbFeatureDescriptor(string(buff)));
-	}
-	*/
-	
-	string bow_path = "output/bowTest7_%i.feature.surf";
-	vector<FeatureDescriptor * > words;
-	for(int i = 0; i < 500; i++){
-		char buff[250];
-		sprintf(buff,bow_path.c_str(),i);
-		words.push_back(new SurfFeatureDescriptor64(string(buff)));
-	}
-	
-	Calibration * calib0 = new Calibration();
-	calib0->fx			= 525.0;
-	calib0->fy			= 525.0;
-	calib0->cx			= 319.5;
-	calib0->cy			= 239.5;
-	calib0->ds			= 1;
-	calib0->scale		= 5000;
-	calib0->words 		= words;
 	
 	Calibration * calib1 = new Calibration();
 	calib1->fx			= 517.3;
@@ -655,7 +609,7 @@ int main(int argc, char **argv)
 	calib1->cy			= 255.3;
 	calib1->ds			= 1.035;
 	calib1->scale		= 5000;
-	calib1->words 		= words;
+	calib1->words 		= vector<FeatureDescriptor * >();
 	
 	OrbExtractor * orb = new OrbExtractor();
 	orb->nr_features = 1000;
@@ -663,56 +617,15 @@ int main(int argc, char **argv)
 	
 	SurfExtractor * surf = new SurfExtractor();
 	surf->calibration = calib1;
-	surf->thres *= 1.0;
-	
 	
 	Map3D * map = new Map3Dbase();	
 	mymap = map;
-	
-	AICK * aick = new AICK();
-	aick->distance_threshold	= 0.0125f;
-	aick->feature_threshold  	*= 0.75;
-	aick->nr_iter				= 150;
-	aick->shrinking				= 0.9;
-	
-	BowAICK * bowaick				= new BowAICK();
-	bowaick->max_points				= 2800;
-	bowaick->distance_threshold		= 0.01f;
-	bowaick->nr_iter				= 30;
-	bowaick->shrinking				= 0.85;
-	bowaick->bow_threshold			= 0.17;
-	
-	DNET * dnet = new DNET();
-	
-
-	
-	MultiFilterMatcher * mlf = new MultiFilterMatcher();
-	mlf->addFilter(new PixelDistanceFilter());
-	mlf->addFilter(new FeatureDistanceFilter());
-	mlf->addFilter(new DistanceNetFilter());
-	mlf->addFilter(new DistanceNetFilter());
-	mlf->addFilter(new DistanceNetFilter());
-	mlf->addFilter(new DistanceNetFilter());
-	mlf->addFilter(new RansacFilter());
-	
-	
-
-	MultiLayerMatcher * mlm = new MultiLayerMatcher();
-	mlm->addMatcher(aick);
-	mlm->addMatcher(mlf);
-	mlm->addMatcher(new FrameMatcher());
-
-
-	map->matcher = aick;
-	map->loopclosure_matcher = bowaick;
-	//map->segmentation = new RGBDSegmentationBase();
 	map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib1;
 	map->extractor = surf;
-	map->setVisualization(viewer);
 	
 	
-	frames = getFrameData("/home/johane/test_data/rgbd_dataset_freiburg1_room",map);
+	frames = getFrameData("/home/johane/test_data/rgbd_dataset_freiburg1_room",map,100000);
 	
 	struct timeval test_start, test_end;
 	done_tasks = 0;
@@ -721,8 +634,9 @@ int main(int argc, char **argv)
 	tasks.clear();
 	int added_tasks = frames->size();
 	for(int i = 0; i < frames->size(); i++){tasks.push_back(i);}
-
-	for(int i = 0; i < 30; i++){
+	
+	transform_tasks = new vector<test_task * >();
+	for(int i = 0; i < 10; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, start_test_thread, NULL);
 	}
@@ -741,46 +655,75 @@ int main(int argc, char **argv)
 	
 	vector<FrameMatcher * > matchers;
 	vector<int> backing;
+	
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(100));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(200));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(300));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(400));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(500));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(1000));
+	backing.push_back(30);
+	matchers.push_back(new BowAICKv2(200000));
+	
+	for(int i = 0; i < 12; i++){
+		pthread_t mythread;
+		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
+	}
+	string bow_path;
+	vector<FeatureDescriptor * > words;
 	/*
-	backing.push_back(1);
-	matchers.push_back(new BowAICK());
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf10/";
+	bow_path = "bow_output/library_10_1_10_%i.feature.surf";
+	words.clear();
+	for(int i = 0; i < 10; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	for(int i = 0; i < frames->size(); i++){printf("fixing words for %i\n",i);frames->at(i)->frame->setWords(words,0.2f);}
+	test(frames,"bowAICKsurf10",matchers,backing);
 	
-	backing.push_back(1);
-	matchers.push_back(new AICK());
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf100/";
+	bow_path = "bow_output/library_100_1_10_%i.feature.surf";
+	words.clear();
+	for(int i = 0; i < 100; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	for(int i = 0; i < frames->size(); i++){printf("fixing words for %i\n",i);frames->at(i)->frame->setWords(words,0.2f);}
+	test(frames,"bowAICKsurf100",matchers,backing);
+	
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf500/";
+	bow_path = "bow_output/library_500_1_10_%i.feature.surf";
+	words.clear();
+	for(int i = 0; i < 500; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	for(int i = 0; i < frames->size(); i++){printf("fixing words for %i\n",i);frames->at(i)->frame->setWords(words,0.2f);}
+	test(frames,"bowAICKsurf500",matchers,backing);
+	
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf1000/";
+	bow_path = "bow_output/library_1000_1_10_%i.feature.surf";
+	words.clear();
+	for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	for(int i = 0; i < frames->size(); i++){printf("fixing words for %i\n",i);frames->at(i)->frame->setWords(words,0.2f);}
+	test(frames,"bowAICKsurf1000",matchers,backing);
+	
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf5000/";
+	bow_path = "bow_output/library_5000_1_10_%i.feature.surf";
+	words.clear();
+	for(int i = 0; i < 5000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	for(int i = 0; i < frames->size(); i++){printf("fixing words for %i\n",i);frames->at(i)->frame->setWords(words,0.2f);}
+	test(frames,"bowAICKsurf5000",matchers,backing);
 	*/
-	
-	DistanceNetMatcherv2 * d1;
-	
-	//backing.push_back(80);
-	//matchers.push_back(new DistanceNetMatcherv4(1,10000, 0.01, 1.96*0.01, false, 0.02,true, 0.01f));
-	
-	//backing.push_back(80);
-	//matchers.push_back(new DistanceNetMatcherv2(15,100, 0.01, 1.96*0.01, false, 0.02,false, 0.01f));
-	
-	//backing.push_back(80);
-	//matchers.push_back(new AICK(100));
-	
-	//backing.push_back(1);
-	//matchers.push_back(new DistanceNetMatcherv2(250, 0.01, 1.96*0.01, false, 0.02));
-	
-	backing.push_back(80);
-	matchers.push_back(new AICK(2500));
-
-	//backing.push_back(1);
-	//d1 = new DistanceNetMatcherv2(200, 0.01, 0.0196, false, 0.02, 0.99, 0.2, 3000);
-	//matchers.push_back(d1);
-	
-	//backing.push_back(1);
-	//BowAICK * baick = new BowAICK(200);
-	//matchers.push_back(baick);
-	
-	//test(frames,"testDnet00000002",matchers,backing);
-	//analyze(frames,"testDnet00000002",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
-	
-	printf("added matchers\n");
-	
-	test(frames,"testDnet00000027",matchers,backing);
-	analyze(frames,"testDnet00000027",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf10/";
+	analyze(frames,"bowAICKsurf10",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf100/";
+	analyze(frames,"bowAICKsurf100",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf500/";
+	analyze(frames,"bowAICKsurf500",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf1000/";
+	analyze(frames,"bowAICKsurf1000",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
+	out_path = "/media/D6287F55287F3399/Users/Johan/output2/bowAICKsurf5000/";
+	analyze(frames,"bowAICKsurf1000",matchers,max_thresh_rot,max_thresh_pos,thresh_steps);
 	printf("---------------------END---------------------\n");
+	
 	return 0;
 }

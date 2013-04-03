@@ -36,8 +36,9 @@ class FrameMatcher
 
 
 #include "AICK.h"
-#include "BowAICK.h"
 #include "AICKv2.h"
+#include "BowAICK.h"
+#include "BowAICKv2.h"
 #include "BasicGIcpMatcher.h"
 #include "BasicIcpMatcher.h"
 #include "dnet.h"

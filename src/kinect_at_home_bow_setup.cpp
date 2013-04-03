@@ -78,6 +78,7 @@ int main(int argc, char **argv)
 	
 	
 	Map3D * map1;
+/*
 	map1 = new Map3Dbow("bow_output/library_10_1_10_%i.feature.orb", 10,1, 10);
 	map1->segmentation = new RGBDSegmentationDummy();
 	map1->segmentation->calibration = calib0;
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
 	map1->segmentation->calibration = calib0;
 	map1->extractor = orb;
 	maps.push_back(map1);
-	
+*/	
 	map1 = new Map3Dbow("bow_output/library_10_1_10_%i.feature.surf", 10,1, 10);
 	map1->segmentation = new RGBDSegmentationDummy();
 	map1->segmentation->calibration = calib0;

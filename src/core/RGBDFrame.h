@@ -67,6 +67,10 @@ class RGBDFrame
 	
 	KeyPointSet * keypoints;
 	
+	//int nr_words;
+	//vector<KeyPoint *> * keypoints_in_word;
+	//vector<int> * keypoints_interested_in_word;
+	
 	vector<Plane *> * planes;
 	
 	vector<float *> validation_points;
@@ -80,6 +84,8 @@ class RGBDFrame
 	void init_jointcloudnormals(IplImage* rgb_img, IplImage* depth_img);
 	void init_segmentation(IplImage* rgb_img,IplImage* depth_img);
 	void init_filter();
+	
+	void setWords(vector<FeatureDescriptor *> words, float limit);
 	
 	void showPlanes();
 	RGBDFrame();
