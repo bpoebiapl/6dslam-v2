@@ -110,7 +110,6 @@ bool mycomparison1 (test_task * i,test_task * j) {return (i->src->frame->id - i-
 void * start_test_thread( void *ptr ){
 	bool run = true;
 	while(run){
-		
 		pthread_mutex_lock( &tasks_mutex );
 		if(tasks.size() > 0)
 		{
@@ -119,7 +118,6 @@ void * start_test_thread( void *ptr ){
 			pthread_mutex_unlock(&tasks_mutex);
 			frames->at(t)->frame = new RGBDFrame(frames->at(t)->frame_input,mymap->extractor,mymap->segmentation);
 			//usleep(100000);
-			
 			pthread_mutex_lock(&done_tasks_mutex);
 			done_tasks++;
 			pthread_mutex_unlock(&done_tasks_mutex);
@@ -135,20 +133,18 @@ void test_a_task(test_task * t)
 {
 	frame_data * src_fd = t->src;
 	frame_data * dst_fd = t->dst;
-		
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 	Transformation * trans = t->matcher->getTransformation(src_fd->frame, dst_fd->frame);
 	gettimeofday(&end, NULL);
-		
 	float eval_time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
 
 	g2o::SE3Quat src_poseSE3 (Eigen::Quaterniond(src_fd->gt->qw, src_fd->gt->qx, src_fd->gt->qy, src_fd->gt->qz), Eigen::Vector3d(src_fd->gt->tx, src_fd->gt->ty, src_fd->gt->tz));
 	g2o::SE3Quat dst_poseSE3 (Eigen::Quaterniond(dst_fd->gt->qw, dst_fd->gt->qx, dst_fd->gt->qy, dst_fd->gt->qz), Eigen::Vector3d(dst_fd->gt->tx, dst_fd->gt->ty, dst_fd->gt->tz));
-				
+
 	Eigen::Matrix4f src_mat = src_poseSE3.to_homogenious_matrix().cast<float>();
 	Eigen::Matrix4f dst_mat = dst_poseSE3.to_homogenious_matrix().cast<float>();
-				
+
 	Eigen::Matrix4f true_trans_mat = dst_mat.inverse()*src_mat;
 	if(trans == NULL){
 		trans = new Transformation();
@@ -157,13 +153,13 @@ void test_a_task(test_task * t)
 		trans->transformationMatrix = true_trans_mat;
 		trans->weight = 100000;
 	}
-		
+
 	Eigen::Matrix4f err = true_trans_mat.inverse() * trans->transformationMatrix;
 	err(0,0) -= 1;
 	err(1,1) -= 1;
 	err(2,2) -= 1;
 	err(3,3) -= 1;
-		
+
 	float dx = err(0,3);
 	float dy = err(1,3);
 	float dz = err(2,3);
@@ -211,13 +207,13 @@ vector< frame_data * > * getFrameData(string path,Map3D * map, int max){
 	string path_rgb		= path+"/rgb.txt";
 	string path_depth	= path+"/depth.txt";
 	string path_asso	= path+"/asso_w_gt.txt";
-	
+
 	printf("starting setup\n");
-	string line;	
+	string line;
 	ifstream asso_file (path_asso.c_str());
 	vector<frame_data *> frame_inputs;
 	vector<FeatureDescriptor *> * centers = new vector<FeatureDescriptor *>();
-	vector< frame_data * > * all_frames = new vector< frame_data * >();	
+	vector< frame_data * > * all_frames = new vector< frame_data * >();
 	if (asso_file.is_open()){
 		int counter = 0;
 		while ( asso_file.good() && counter < max){
@@ -328,7 +324,8 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	while(transform_nr_done_tasks() < transform_added_tasks){
 		gettimeofday(&test_end, NULL);
 		printf("%i/%i Time spent: %f\n",transform_nr_done_tasks(),transform_added_tasks,(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f);
-		usleep(50000);
+		sleep(10);
+		//usleep(5000000);
 	}
 
 	float max_thresh_rot = 0.25;
@@ -422,37 +419,29 @@ void switch_callback_bow_threshold( int position )		{
 int main(int argc, char **argv)
 {
 	printf("--------------------START--------------------\n");
-	
 	Calibration * calib1 = new Calibration();
 	calib1->fx			= 517.3;
 	calib1->fy			= 516.5;
 	calib1->cx			= 318.6;
 	calib1->cy			= 255.3;
 	calib1->ds			= 1.035;
-	calib1->scale		= 5000;
-	calib1->words 		= vector<FeatureDescriptor * >();
-	
-	OrbExtractor * orb = new OrbExtractor();
-	orb->nr_features = 1100;
-	orb->calibration = calib1;
-	
+	calib1->scale			= 5000;
+	calib1->words 			= vector<FeatureDescriptor * >();
+
 	SurfExtractor * surf = new SurfExtractor();
 	surf->calibration = calib1;
-	
-	Map3D * map = new Map3Dbase();	
+
+	Map3D * map = new Map3Dbase();
 	mymap = map;
 	map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib1;
-	//map->extractor = surf;
-	map->extractor = orb;
-	
-	
+	map->extractor = surf;
 	frames = getFrameData("/home/johane/test_data/rgbd_dataset_freiburg1_room",map,400000);
-	
+
 	struct timeval test_start, test_end;
 	done_tasks = 0;
 	gettimeofday(&test_start, NULL);
-	
+
 	tasks.clear();
 	int added_tasks = frames->size();
 	for(int i = 0; i < frames->size(); i++){tasks.push_back(i);}
@@ -464,7 +453,7 @@ int main(int argc, char **argv)
 	}
 
 	while(nr_done_tasks() < added_tasks){
-		gettimeofday(&test_end, NULL);
+		gettimeofday(&test_end, NULL);ss
 		printf("%f %i/%i\n",(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f,nr_done_tasks(),added_tasks);
 		usleep(500000);
 	}
@@ -483,52 +472,43 @@ int main(int argc, char **argv)
 	
 	matchers.clear();
 	backing.clear();
-	
-	backing.push_back(1);
-	current_matcher = new BowAICKv2(800,7,0.8);
-	current_matcher->feature_scale = 2.5;
-	current_matcher->feature_threshold = 0.14;
-	matchers.push_back(current_matcher);
-	
-	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
-	words.clear();
-	for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
-	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,1.0f);}
-	
-	cvNamedWindow( "dummy", 1 );
-	cvNamedWindow( "BowAICKv2", 1 );
-	
-	cvCreateTrackbar( "iter", "BowAICKv2", NULL, 100, switch_callback_iter );
-	cvSetTrackbarPos( "iter", "BowAICKv2", current_matcher->nr_iter);
-	
-	cvCreateTrackbar( "max_points", "BowAICKv2", NULL, 2000, switch_callback_max_points );
-	cvSetTrackbarPos( "max_points", "BowAICKv2", current_matcher->max_points);
-	
-	cvCreateTrackbar( "shrinking", "BowAICKv2", NULL, 100, switch_callback_shrinking );
-	cvSetTrackbarPos( "shrinking", "BowAICKv2", int(current_matcher->shrinking*100));
-	
-	cvCreateTrackbar( "scaling", "BowAICKv2", NULL, 10000, switch_callback_scaling );
-	cvSetTrackbarPos( "scaling", "BowAICKv2", int(current_matcher->feature_scale*1000));
-	
-	cvCreateTrackbar( "distance_threshold", "BowAICKv2", NULL, 10000, switch_callback_distance_threshold );
-	cvSetTrackbarPos( "distance_threshold", "BowAICKv2", int(current_matcher->distance_threshold*10000));
-	
-	cvCreateTrackbar( "feature_threshold", "BowAICKv2", NULL, 10000, switch_callback_feature_threshold );
-	cvSetTrackbarPos( "feature_threshold", "BowAICKv2", int(current_matcher->feature_threshold*10000));
-	
-	cvCreateTrackbar( "bow_threshold", "BowAICKv2", NULL, 100000, switch_callback_feature_threshold );
-	cvSetTrackbarPos( "bow_threshold", "BowAICKv2", 10000);
-	
-	//float distance_threshold;
-	//float feature_threshold;
 
-	while(true){
-		test(frames,"bowAICKorbOpt",matchers,backing);
-		cvWaitKey(0);
-	}
-	
+	matchers.push_back(new AICK(10000,30,0.8));
+	backing.push_back(30);
+
+	matchers.push_back(new AICK(200,5,0.3));
+	backing.push_back(30);
+
+        test(frames,"originalAICKsurf",matchers,backing);
+
+        matchers.clear();
+        backing.clear();
+
+        matchers.push_back(new BowAICKv2(10000,30,0.8));
+        backing.push_back(30);
+
+        matchers.push_back(new BowAICKv2(200,5,0.3));
+        backing.push_back(30);
+
+        bow_path = "bow_output/library_1000_1_10_%i.feature.surf";
+        words.clear();
+        for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+
+        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.15f);}
+        test(frames,"bowAICKsurf_bl_0_15",matchers,backing);
+
+        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.2f);}
+        test(frames,"bowAICKsurf_bl_0_2",matchers,backing);
+
+        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.25f);}
+	test(frames,"bowAICKsurf_bl_0_25",matchers,backing);
+
+        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.3f);}
+        test(frames,"bowAICKsurf_bl_0_3",matchers,backing);
+
+        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.35f);}
+        test(frames,"bowAICKsurf_bl_0_35",matchers,backing);
 
 	printf("---------------------END---------------------\n");
-	
 	return 0;
 }

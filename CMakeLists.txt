@@ -161,16 +161,11 @@ target_link_libraries(imu_grabber opencv_calib3d opencv_core opencv_flann opencv
 
 ###################
 
-#add_executable(evaluate_registration_surf src/evaluate_registration_surf.cpp)
-#target_link_libraries(evaluate_registration_surf ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
-#target_link_libraries(evaluate_registration_surf g2o_cli g2o_core g2o_incremental g2o_interactive g2o_$
-#target_link_libraries(evaluate_registration_surf opencv_calib3d opencv_core opencv_flann opencv_highgu$
+add_executable(evaluate_registration_surf src/evaluate_registration_surf.cpp)
+target_link_libraries(evaluate_registration_surf ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
 
 ###################
 
 add_executable(evaluate_registration_orb src/evaluate_registration_orb.cpp)
 target_link_libraries(evaluate_registration_orb ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
-#target_link_libraries(evaluate_registration_orb g2o_cli g2o_core g2o_incremental g2o_interactive g$)
-#target_link_libraries(evaluate_registration_orb opencv_calib3d opencv_core opencv_flann opencv_hig$
-
 ###################
