@@ -1,4 +1,5 @@
 disp('Running matlab script');
+plot(log2(1:1024));
 %figure(1)
 %clf
 %hold on
