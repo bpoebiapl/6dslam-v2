@@ -18,6 +18,8 @@ class KeyPoint {
 		float stabilety;
 		vector<float> cluster_distances;
 		vector< pair <int , float > > cluster_distance_pairs;
+		int cluster;
+		vector< int > interesting_clusters;
 		KeyPoint();
 		~KeyPoint();
 		void print();

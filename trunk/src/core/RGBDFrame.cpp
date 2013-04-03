@@ -217,6 +217,10 @@ RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegment
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 	
+	//nr_words = 0;
+	//keypoints_in_word = 0;
+	//keypoints_interested_in_word = 0;
+	
 	bool calculate_pointcloud 			= true;
 	bool calculate_normals 				= false;
 	bool calculate_jointcloudnormals	= false;
@@ -289,13 +293,13 @@ RGBDFrame::RGBDFrame(Frame_input * fi, FeatureExtractor * extractor, RGBDSegment
 
 	normal_radius_	= 0.15f;
 	feature_radius_	= 0.15f;
-
+/*
 	if(calculate_pointcloud)			{init_pointcloud(rgb_img,depth_img);}
 	if(calculate_segmentation)			{init_segmentation(rgb_img,depth_img);}
 	if(calculate_normals)				{init_normals();}
 	if(calculate_jointcloudnormals)		{init_jointcloudnormals(rgb_img,depth_img);}
 	if(filter_pointcloud)				{init_filter();}
-	
+*/	
 	float d_scaleing	= input->calibration->ds/input->calibration->scale;
 	float centerX		= input->calibration->cx;
 	float centerY		= input->calibration->cy;
@@ -398,7 +402,6 @@ RGBDFrame::RGBDFrame(pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr input_cloud, v
 }
 
 RGBDFrame::~RGBDFrame(){printf("~RGBDFrame()\n");}
-
 void RGBDFrame::showPlanes(){
 	IplImage* rgb_img 	= cvLoadImage(input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 	IplImage* depth_img = cvLoadImage(input->depth_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
@@ -478,4 +481,34 @@ void RGBDFrame::showPlanes(){
 	cvWaitKey(0);
 	cvReleaseImage( &rgb_img );
 	cvReleaseImage( &depth_img );
+}
+
+void RGBDFrame::setWords(vector<FeatureDescriptor *> words, float limit){
+	//printf("setting words\n");
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	//if(keypoints_in_word != 0){delete[] keypoints_in_word;}
+	//nr_words 						= words.size();
+	//keypoints_in_word 				= new vector<KeyPoint *>[nr_words];
+	//for(int i = 0; i < nr_words; i++){keypoints_in_word[i] 			= vector<KeyPoint *>();}
+	
+	input->calibration->words = words;
+	//printf("keypoints->valid_key_points.size() %i\n",keypoints->valid_key_points.size());
+	for(unsigned int i = 0; i < keypoints->valid_key_points.size();i++){
+		KeyPoint * kp = keypoints->valid_key_points.at(i);
+		kp->interesting_clusters.clear();
+		kp->cluster = 0;
+		int best_id = 0;
+		float best  = 10000000000;
+		for(unsigned int j = 0; j < words.size();j++){
+			float d = kp->descriptor->distance(words.at(j));
+			if(d < limit){	kp->interesting_clusters.push_back(j);}
+			if(d < best){	best = d; best_id = j;}
+		}
+		kp->cluster = best_id;
+		//keypoints_in_word[best_id].push_back(kp);
+	}
+	gettimeofday(&end, NULL);
+	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	//printf("cost: %f\n",time);
 }

@@ -702,7 +702,7 @@ int main(int argc, char **argv)
 	backing.push_back(vector<int>());
 	backing.back().push_back(7);
 	//for(int i = 1; i <= 1; i+=1){backing.back().push_back(i);}
-	matchers.push_back(new BowAICK());
+	matchers.push_back(new AICK());
 	
 	backing.push_back(vector<int>());
 	backing.back().push_back(7);

@@ -1,46 +1,47 @@
-#include "BowAICK.h"
+#include "BowAICKv2.h"
 #include <vector>
 
 using namespace std;
-const bool debugg_BowAICK = false;
+const bool debugg_BowAICKv2 = false;
 
-BowAICK::BowAICK()
+BowAICKv2::BowAICKv2()
 {
-	name = "BowAICK";
+	name = "BowAICKv2";
 	nr_iter = 30;
-	
 	feature_scale = 1;
-	
-	bow_threshold = 0.2;
-	
-	distance_threshold = 0.015f * feature_scale;
-	feature_threshold = bow_threshold;
+	distance_threshold = 0.015f;
+	feature_threshold = 0.2f;
 	shrinking = 0.8f;
-	stabilety_threshold = 0.000001f;
 	max_points = 100000;
 }
 
-BowAICK::BowAICK(int max_points_)
+BowAICKv2::BowAICKv2(int max_points_)
 {
-	name = "BowAICK";
+	name = "BowAICKv2";
 	nr_iter = 30;
-	
 	feature_scale = 1;
-	
-	bow_threshold = 0.2;
-	
-	distance_threshold = 0.015f * feature_scale;
-	feature_threshold = bow_threshold;
+	distance_threshold = 0.015f;
+	feature_threshold = 0.2f;
 	shrinking = 0.8f;
-	stabilety_threshold = 0.000001f;
 	max_points = max_points_;
 }
 
-BowAICK::~BowAICK(){printf("delete BowAICK\n");}
+BowAICKv2::BowAICKv2(int max_points_, int nr_iter_, float shrinking_)
+{
+	name = "BowAICKv2";
+	nr_iter = nr_iter_;
+	feature_scale = 1;
+	distance_threshold = 0.015f;
+	feature_threshold = 0.2f;
+	shrinking = shrinking_;
+	max_points = max_points_;
+}
 
-float BowAICK::getAlpha(int iteration){return 1-pow(shrinking,float(iteration));}
+BowAICKv2::~BowAICKv2(){printf("delete BowAICKv2\n");}
 
-Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
+float BowAICKv2::getAlpha(int iteration){return 1-pow(shrinking,float(iteration));}
+
+Transformation * BowAICKv2::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 {
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -52,94 +53,63 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	transformation->dst = dst;
 	transformation->weight = 100;
 	
-	if(debugg_BowAICK){printf("BowAICK::getTransformation(%i,%i)\n",src->id,dst->id);}
+	if(debugg_BowAICKv2){printf("BowAICKv2::getTransformation(%i,%i)\n",src->id,dst->id);}
 	IplImage* img_combine;
 	int width;
 	int height;
-	if(debugg_BowAICK)
-	{
+	if(debugg_BowAICKv2){
 		IplImage* rgb_img_src 	= cvLoadImage(src->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 		char * data_src = (char *)rgb_img_src->imageData;
 		IplImage* rgb_img_dst 	= cvLoadImage(dst->input->rgb_path.c_str(),CV_LOAD_IMAGE_UNCHANGED);
 		char * data_dst = (char *)rgb_img_dst->imageData;
-		
 		width = rgb_img_src->width;
 		height = rgb_img_src->height;
-		
 		img_combine = cvCreateImage(cvSize(2*width,height), IPL_DEPTH_8U, 3);
 		char * data = (char *)img_combine->imageData;
-		
-
-
-		int index = 0;
-		
-		for (int j = 0; j < height; j++)
-		{
-			for (int i = 0; i < width; i++)
-			{
-				
+		for (int j = 0; j < height; j++){
+			for (int i = 0; i < width; i++){
 				int ind = 3*(640*j+i);
 				data[3 * (j * (2*width) + (width+i)) + 0] = data_dst[ind +0];
 				data[3 * (j * (2*width) + (width+i)) + 1] = data_dst[ind +1];
 				data[3 * (j * (2*width) + (width+i)) + 2] = data_dst[ind +2];
-
 				data[3 * (j * (2*width) + (i)) + 0] = data_src[ind +2];
 				data[3 * (j * (2*width) + (i)) + 1] = data_src[ind +2];
 				data[3 * (j * (2*width) + (i)) + 2] = data_src[ind +2];
-				
 			}
 		}
-		
-		//cvNamedWindow("combined image", CV_WINDOW_AUTOSIZE );
-		//cvShowImage("combined image", img_combine);
-		//cvWaitKey(0);
 		cvReleaseImage( &rgb_img_src );
 		cvReleaseImage( &rgb_img_dst );
 	}
-	
-//printf("%i\n",__LINE__);
 	
 	int nr_loop_src = src->keypoints->valid_key_points.size();
 	if(nr_loop_src > max_points){nr_loop_src = max_points;}
 	int nr_loop_dst = dst->keypoints->valid_key_points.size();
 	if(nr_loop_dst > max_points){nr_loop_dst = max_points;}
 	
-//printf("%i\n",__LINE__);
 	vector<KeyPoint * > src_keypoints;
-	for(int i = 0; i < nr_loop_src; i++){src_keypoints.push_back(src->keypoints->valid_key_points.at(i));}
-
 	vector<KeyPoint * > dst_keypoints;
+	for(int i = 0; i < nr_loop_src; i++){src_keypoints.push_back(src->keypoints->valid_key_points.at(i));}
 	for(int i = 0; i < nr_loop_dst; i++){dst_keypoints.push_back(dst->keypoints->valid_key_points.at(i));}
-	int nr_bow = src->keypoints->valid_key_points.at(0)->cluster_distances.size();
+	
+	int nr_bow = src->input->calibration->words.size();
+	
+	//printf("nr_bow: %i\n");
 	vector<int> * bow = new vector<int>[nr_bow];
 	for(int i = 0; i < nr_bow; i++){bow[i] = vector<int>();}
-//printf("%i\n",__LINE__);
+	
 	for(int i = 0; i < dst_keypoints.size(); i++){
-		KeyPoint * kp = dst_keypoints.at(i);
-		if(kp->cluster_distance_pairs.size()>0){
-			int id = kp->cluster_distance_pairs.at(0).first;
-			bow[id].push_back(i);
-		}
-	}
+		//printf("dst_keypoints.at(i)->cluster: %i\n",dst_keypoints.at(i)->cluster);
+		bow[dst_keypoints.at(i)->cluster].push_back(i);}
 
 	vector< vector< int > > possible_matches;
 	for(int i = 0; i < src_keypoints.size(); i++){
 		possible_matches.push_back(vector< int >());
-	}
-
-
-	for(int i = 0; i < src_keypoints.size(); i++){
 		KeyPoint * src_kp = src_keypoints.at(i);
-		for(int j = 0; j < src_kp->cluster_distance_pairs.size(); j++){
-			float d = src_kp->cluster_distance_pairs.at(j).second;
-			int id = src_kp->cluster_distance_pairs.at(j).first;
-			//printf("%i %i -> %i %f\n",i,j,id,d);
-			if(d < bow_threshold){
-				vector<int> vec = bow[id];
-				for(int k = 0; k < vec.size(); k++){
-					possible_matches.at(i).push_back(vec.at(k));
-				}
-			}else{break;}
+		for(int j = 0; j < src_kp->interesting_clusters.size(); j++){
+			vector<int> vec = bow[src_kp->interesting_clusters.at(j)];
+			for(int k = 0; k < vec.size(); k++){
+				possible_matches.at(i).push_back(vec.at(k));
+			}
 		}
 	}
 	
@@ -147,7 +117,6 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	int src_nr_points = src_keypoints.size();
 	int dst_nr_points = dst_keypoints.size();
 	float ** feature_distances = new float*[src_nr_points];
-//printf("%i\n",__LINE__);
 	for(int i = 0; i < src_nr_points;i++){
 		FeatureDescriptor * descriptorA = src_keypoints.at(i)->descriptor;
 		int dst_nr_matches = possible_matches.at(i).size();
@@ -183,7 +152,6 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	{
 	
 		float alpha = getAlpha(iter);
-		//printf("alpha= %f\n",alpha);
 		pcl::TransformationFromCorrespondences tfc;
 		float threshold = distance_threshold*alpha + (1 - alpha)*feature_threshold;
 		transformation->weight = 0;
@@ -203,7 +171,7 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 		float mat23 = transformationMat(2,3);
 		
 		IplImage * img_combine_clone;
-		if(debugg_BowAICK){
+		if(debugg_BowAICKv2){
 			img_combine_clone = cvCreateImage(cvSize(img_combine->width, img_combine->height), IPL_DEPTH_8U, 3);
 			cvCopy( img_combine, img_combine_clone, NULL );
 		}
@@ -238,7 +206,7 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 			if(best_d < threshold && best_j != -1){
 				KeyPoint * src_kp = src_keypoints.at(i);
 				KeyPoint * dst_kp = dst_keypoints.at(best_j);
-				if(debugg_BowAICK){
+				if(debugg_BowAICKv2){
 					cvCircle(img_combine_clone,cvPoint(dst_kp->point->w + width	, dst_kp->point->h), 5,cvScalar(0, 255, 0, 0),2, 8, 0);
 					cvCircle(img_combine_clone,cvPoint(src_kp->point->w			, src_kp->point->h), 5,cvScalar(0, 255, 0, 0),2, 8, 0);
 					cvLine(img_combine_clone,cvPoint(dst_kp->point->w  + width ,dst_kp->point->h),cvPoint(src_kp->point->w,src_kp->point->h),cvScalar(0, 0, 255, 0),1, 8, 0);
@@ -254,14 +222,14 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 		transformationMat = tfc.getTransformation().matrix();
 		transformation->transformationMatrix = transformationMat;
 		
-		if(debugg_BowAICK ){
+		if(debugg_BowAICKv2 ){
 			cvShowImage("combined image", img_combine_clone);
 			cvWaitKey(0);
 			cvReleaseImage( &img_combine_clone);
 		}
 	}
 	
-	if(debugg_BowAICK){printf("done\n");cvReleaseImage( &img_combine );}
+	if(debugg_BowAICKv2){printf("done\n");cvReleaseImage( &img_combine );}
 	
 	for(int i = 0; i < src_nr_points;i++){delete[] feature_distances[i];}
 	delete[] feature_distances;
@@ -279,6 +247,6 @@ Transformation * BowAICK::getTransformation(RGBDFrame * src, RGBDFrame * dst)
 	
 	gettimeofday(&end, NULL);
 	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
-	//printf("BowAICK cost: %f\n",time);
+	//printf("BowAICKv2 cost: %f\n",time);
 	return transformation;
 }

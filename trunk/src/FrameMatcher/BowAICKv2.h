@@ -1,5 +1,5 @@
-#ifndef AICK_H_
-#define AICK_H_
+#ifndef BowAICKv2_H_
+#define BowAICKv2_H_
 //OpenCV
 #include "cv.h"
 #include "highgui.h"
@@ -25,7 +25,7 @@
 
 using namespace std;
 
-class AICK: public FrameMatcher
+class BowAICKv2: public FrameMatcher
 {
 	public:
 		int nr_iter;
@@ -33,12 +33,11 @@ class AICK: public FrameMatcher
 		float distance_threshold;
 		float feature_threshold;
 		float shrinking;
-		float stabilety_threshold;
 		int max_points;
-		AICK();
-		AICK(int max_points_);
-		AICK(int max_points_,int nr_iter_ , float shrinking_);
-		~AICK();
+		BowAICKv2();
+		BowAICKv2(int max_points_);
+		BowAICKv2(int max_points_, int nr_iter_, float shrinking_);
+		~BowAICKv2();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);
 		float getAlpha(int iteration);
 };

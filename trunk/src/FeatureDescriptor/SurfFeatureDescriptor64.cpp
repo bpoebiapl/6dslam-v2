@@ -36,7 +36,7 @@ SurfFeatureDescriptor64::~SurfFeatureDescriptor64(){
 SurfFeatureDescriptor64::SurfFeatureDescriptor64(string path){
 	type = surf64;
 	descriptor_length = 64;
-	cout<< "loading surf64: " << path << endl;
+	//cout<< "loading surf64: " << path << endl;
 	ifstream file (path.c_str());
 	if (file.is_open()){
 		file.seekg(0,ifstream::end);
@@ -97,7 +97,7 @@ inline void SurfFeatureDescriptor64::update(vector<FeatureDescriptor * > * input
 
 double SurfFeatureDescriptor64::distance(SurfFeatureDescriptor64 * other_descriptor)
 {
-	if(laplacian == other_descriptor->laplacian)
+	if(true)//laplacian == other_descriptor->laplacian)
 	{
 		float * disc = other_descriptor->descriptor;
 		float tmp0 		= descriptor[0] - disc[0];

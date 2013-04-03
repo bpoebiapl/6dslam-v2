@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.4.6)
 
-set(CMAKE_CXX_FLAGS "-O3 -g -Wall")
+set(CMAKE_CXX_FLAGS "-O4 -Wall")
+#set(CMAKE_CXX_FLAGS "-O3 -g -Wall")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
@@ -69,7 +70,7 @@ target_link_libraries(TransformationFilter core)
 target_link_libraries(TransformationFilter opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 include_directories(src/FrameMatcher)
-add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/BowAICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/DistanceNetMatcherv5.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp src/FrameMatcher/GraphCutMatcherv1.cpp)
+add_library(FrameMatcher src/FrameMatcher/FrameMatcher.cpp src/FrameMatcher/AICK.cpp src/FrameMatcher/AICKv2.cpp src/FrameMatcher/BowAICKv2.cpp src/FrameMatcher/dnet.cpp src/FrameMatcher/DistanceNetMatcher.cpp src/FrameMatcher/DistanceNetMatcherv2.cpp src/FrameMatcher/DistanceNetMatcherv3.cpp src/FrameMatcher/DistanceNetMatcherv4.cpp src/FrameMatcher/DistanceNetMatcherv5.cpp src/FrameMatcher/BasicIcpMatcher.cpp src/FrameMatcher/BasicGIcpMatcher.cpp src/FrameMatcher/NDTMatcher.cpp src/FrameMatcher/RansacPCLCopyMatcher.cpp src/FrameMatcher/RansacPCLCopySlowMatcher.cpp src/FrameMatcher/MultiLayerMatcher.cpp src/FrameMatcher/MultiFilterMatcher.cpp src/FrameMatcher/FilterMatcher.cpp src/FrameMatcher/GraphCutMatcherv1.cpp)
 target_link_libraries(FrameMatcher ${PCL_LIBRARIES})
 target_link_libraries(FrameMatcher core)
 target_link_libraries(FrameMatcher TransformationFilter)
@@ -132,21 +133,44 @@ target_link_libraries(evaluate_registrationv2 ${PCL_LIBRARIES} ${OpenCV_LIBS} ma
 target_link_libraries(evaluate_registrationv2 g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
 target_link_libraries(evaluate_registrationv2 opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
+##################
+
+add_executable(evaluate_registrationv3 src/evaluate_registrationv3.cpp)
+target_link_libraries(evaluate_registrationv3 ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
+target_link_libraries(evaluate_registrationv3 g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
+target_link_libraries(evaluate_registrationv3 opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
+
+##################
+
+add_executable(evaluate_registrationv4 src/evaluate_registrationv4.cpp)
+target_link_libraries(evaluate_registrationv4 ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
+target_link_libraries(evaluate_registrationv4 g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
+target_link_libraries(evaluate_registrationv4 opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
+
 ###################
 
 add_executable(imu_grabber src/imu_grabber.cpp)
 target_link_libraries(imu_grabber phidget21)
 target_link_libraries(imu_grabber ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
-target_link_libraries(imu_grabber g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
+target_link_libraries(imu_grabber g2o_cli g2o_core g2o_incremental g2o_interactive g2o_interface)
+target_link_libraries(imu_grabber g2o_math_groups g2o_parser g2o_solver_cholmod g2o_solver_csparse) 
+target_link_libraries(imu_grabber g2o_solver_dense g2o_solver_pcg g2o_stuff g2o_types_icp)
+target_link_libraries(imu_grabber g2o_types_sba g2o_types_sim3 g2o_types_slam2d g2o_types_slam3d)
 target_link_libraries(imu_grabber opencv_calib3d opencv_core opencv_flann opencv_highgui opencv_legacy opencv_nonfree opencv_photo opencv_ts opencv_videostab opencv_contrib opencv_features2d opencv_gpu  opencv_imgproc opencv_ml opencv_objdetect opencv_stitching opencv_video)
 
 
+###################
 
+#add_executable(evaluate_registration_surf src/evaluate_registration_surf.cpp)
+#target_link_libraries(evaluate_registration_surf ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
+#target_link_libraries(evaluate_registration_surf g2o_cli g2o_core g2o_incremental g2o_interactive g2o_$
+#target_link_libraries(evaluate_registration_surf opencv_calib3d opencv_core opencv_flann opencv_highgu$
 
+###################
 
+add_executable(evaluate_registration_orb src/evaluate_registration_orb.cpp)
+target_link_libraries(evaluate_registration_orb ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
+#target_link_libraries(evaluate_registration_orb g2o_cli g2o_core g2o_incremental g2o_interactive g$)
+#target_link_libraries(evaluate_registration_orb opencv_calib3d opencv_core opencv_flann opencv_hig$
 
-
-
-
-
-
+###################

@@ -62,10 +62,10 @@ int main(int argc, char **argv)
 	calib0->cy			= 239.5;
 	calib0->ds			= 3*1;
 	calib0->scale		= 5000;
-	calib0->words 		= words;
+	calib0->words 		= vector<FeatureDescriptor * >();//words;
 	
 	OrbExtractor * orb = new OrbExtractor();
-	orb->nr_features = 1000;
+	orb->nr_features = 750;
 	orb->calibration = calib0;
 	
 	SurfExtractor * surf = new SurfExtractor();
@@ -73,18 +73,38 @@ int main(int argc, char **argv)
 	surf->thres *= 1.0;
 	
 	//vector< Frame_input * > * all_input = getFrameInput("/home/johane/LibraryRecsForJohan/6e079fee-6c5f-42ec-b1d5-cb01cea5dedd",001, 10,calib0);
-	vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 10,calib0);
+	vector< Frame_input * > * all_input = getFrameInput("/home/johane/johan_cvap_run",1000, 1000,calib0);
 	
 	
 	Map3D * map;
 	map = new Map3DPlanesGraphv4();
-	map->matcher = new GraphCutMatcherv1();//new AICK();
+	map->matcher = new AICK();//new GraphCutMatcherv1();//new AICK();
 	map->loopclosure_matcher = map->matcher;
 	map->segmentation = new RGBDSegmentationScaleSearch();//new RGBDSegmentationBase();
+	map->segmentation = new RGBDSegmentationDummy();
 	map->segmentation->calibration = calib0;
-	map->extractor = surf;
+	map->extractor = orb;
+	//for(int i = 0; i < all_input->size(); i+=1){printf("i:%i\n",i);map->addFrame(all_input->at(i));}
+	//sleep(10);
+	vector<RGBDFrame *> frames;
+	for(int i = 0; i < all_input->size(); i++){
+		printf("creating:%i\n",i);
+		frames.push_back(new RGBDFrame(all_input->at(i),map->extractor,map->segmentation));
+	}
+	sleep(1);
 	
-	for(int i = 0; i < all_input->size(); i+=1){printf("i:%i\n",i);map->addFrame(all_input->at(i));}
-
+	bow_path = "bow_output/library_5000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 5000; i++){
+		char buff[250];
+		sprintf(buff,bow_path.c_str(),i);
+		words.push_back(new SurfFeatureDescriptor64(string(buff)));
+	}
+	
+	for(int i = 0; i < frames.size(); i++){
+		printf("adding words:%i\n",i);
+		frames.at(i)->setWords(words, 0.2f);
+	}
+	sleep(30);
 	return 0;
 }

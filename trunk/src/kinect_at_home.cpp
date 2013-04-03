@@ -265,12 +265,12 @@ int main(int argc, char **argv)
 	aick->nr_iter				= 10;
 	aick->shrinking				= 0.5;
 	
-	BowAICK * bowaick				= new BowAICK();
+	BowAICKv2 * bowaick				= new BowAICKv2();
 	bowaick->max_points				= 200;
 	bowaick->distance_threshold		= 0.01f;
 	bowaick->nr_iter				= 10;
 	bowaick->shrinking				= 0.55;
-	bowaick->bow_threshold			= 0.17;
+	//bowaick->bow_threshold			= 0.17;
 	//bowaick->feature_scale			= 0.5;
 	//bowaick->feature_threshold		*= bowaick->feature_scale;
 	//bowaick->feature_threshold		*= 2;
