@@ -21,12 +21,12 @@ AICK_orb_10_300  	= originalAICKorb_1_AICK_mat_pos;
 AICK_orb_10_300_time 	= originalAICKorb_1_AICK_avg_time;
 
 disp('Running matlab script');
-%figure(1)
-%clf
-%hold on
-%part = 1:75;
-%axis([0 thresholds(part(end)) 0 1.01])
-%step = 1;%:5:30;
+figure(1)
+clf
+hold on
+part = 1:75;
+axis([0 thresholds(part(end)) 0 1.01])
+step = 1;%:5:30;
 plot(thresholds(part),AICK_surf_30_inf(step,(part)),'g')
 plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
 
