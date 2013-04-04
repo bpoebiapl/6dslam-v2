@@ -13,7 +13,7 @@ disp('Running matlab script');
 %hold on
 part = 1:75;
 axis([0 thresholds(part(end)) 0 1.01])
-step = 1:5:30;
+step = 1;%:5:30;
 plot(thresholds(part),AICK_surf_30_inf(step,(part)),'g')
 plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
 plot(thresholds(part),AICK_orb_30_inf(step,(part)),'r')
