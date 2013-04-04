@@ -45,7 +45,7 @@ legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast')
 figure(3)
 clf
 hold on
-plot(log2(AICK_surf_10_300_time),'g')
+plot(log2(AICK_surf_30_inf_time),'g')
 plot(log2(AICK_surf_5_200_time),'g-x')
 plot(log2(AICK_orb_30_inf_time),'r')
 plot(log2(AICK_orb_10_300_time),'r-x')
