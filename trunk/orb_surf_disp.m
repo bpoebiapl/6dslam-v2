@@ -19,7 +19,6 @@ plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
 plot(thresholds(part),AICK_orb_30_inf(step,(part)),'r')
 plot(thresholds(part),AICK_orb_10_300(step,(part)),'r-x')
 
-plot(thresholds(part),bowAICKsurf_bl_0_1_0_BowAICKv2_mat_pos(step,(part)),'b')
 plot(thresholds(part),bowAICKsurf_bl_0_15_0_BowAICKv2_mat_pos(step,(part)),'b-x')
 plot(thresholds(part),bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos(step,(part)),'b-o')
 plot(thresholds(part),bowAICKsurf_bl_0_25_0_BowAICKv2_mat_pos(step,(part)),'m')
