@@ -8,9 +8,9 @@ AICK_orb_30_inf = originalAICKorb_0_AICK_mat_pos;
 AICK_orb_10_300  = originalAICKorb_1_AICK_mat_pos;
 
 disp('Running matlab script');
-%figure(1)
-%clf
-%hold on
+figure(1)
+clf
+hold on
 part = 1:75;
 axis([0 thresholds(part(end)) 0 1.01])
 step = 1;%:5:30;
