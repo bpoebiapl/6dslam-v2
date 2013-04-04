@@ -43,23 +43,18 @@ plot(thresholds(part),bowAICK_orb_10_300(step,(part)),'b-x')
 
 legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK orb','AICK orb fast','bow AICK orb','bow AICK orb fast')
 
-
-
-figure(2)
-clf
-hold on
-plot(AICK_surf_30_inf(:,15),'g')
-plot(AICK_surf_5_200(:,15),'g-x')
-
-plot(bowAICK_surf_30_inf(:,15),'m')
-plot(bowAICK_surf_5_200(:,15),'m-x')
-
-plot(AICK_orb_30_inf(:,15),'r')
-plot(AICK_orb_10_300(:,15),'r-x')
-
-plot(bowAICK_orb_30_inf(:,15),'b')
-plot(bowAICK_orb_10_300(:,15),'b-x')
-legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK $
+%figure(2)
+%clf
+%hold on
+%plot(AICK_surf_30_inf(:,15),'g')
+%plot(AICK_surf_5_200(:,15),'g-x')
+%plot(bowAICK_surf_30_inf(:,15),'m')
+%plot(bowAICK_surf_5_200(:,15),'m-x')
+%plot(AICK_orb_30_inf(:,15),'r')
+%plot(AICK_orb_10_300(:,15),'r-x')
+%plot(bowAICK_orb_30_inf(:,15),'b')
+%plot(bowAICK_orb_10_300(:,15),'b-x')
+%legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK $
 
 figure(3)
 clf
