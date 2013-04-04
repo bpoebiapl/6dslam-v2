@@ -27,10 +27,7 @@ disp('Running matlab script');
 %plot(thresholds(part),bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos(step,(part)),'b-o')
 %plot(thresholds(part),bowAICKsurf_bl_0_25_0_BowAICKv2_mat_pos(step,(part)),'m')
 %plot(thresholds(part),bowAICKsurf_bl_0_3_0_BowAICKv2_mat_pos(step,(part)),'m-x')
-plot(thresholds(part),bowAICKsurf_bl_0_35_0_BowAICKv2_mat_pos(step,(part)),'m-o')
-
-
-
+%plot(thresholds(part),bowAICKsurf_bl_0_35_0_BowAICKv2_mat_pos(step,(part)),'m-o')
 
 %legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast')
 
