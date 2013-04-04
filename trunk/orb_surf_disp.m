@@ -8,7 +8,7 @@ bowAICK_surf_30_inf_time= bowAICKsurf_bl_0_2_0_BowAICKv2_avg_time;
 
 AICK_surf_5_200  	= originalAICKsurf_1_AICK_mat_pos;
 AICK_surf_5_200_time 	= originalAICKsurf_1_AICK_avg_time;
-bowAICK_surf_5_inf     	= bowAICKsurf_bl_0_2_1_BowAICKv2_mat_pos;
+bowAICK_surf_5_200     	= bowAICKsurf_bl_0_2_1_BowAICKv2_mat_pos;
 bowAICK_surf_5_200_time	= bowAICKsurf_bl_0_2_1_BowAICKv2_avg_time;
 
 
