@@ -12,27 +12,27 @@ AICK_orb_10_300  	= originalAICKorb_1_AICK_mat_pos;
 AICK_orb_10_300_time 	= originalAICKorb_1_AICK_avg_time;
 
 disp('Running matlab script');
-figure(1)
-clf
-hold on
-part = 1:75;
-axis([0 thresholds(part(end)) 0 1.01])
-step = 1;%:5:30;
-plot(thresholds(part),AICK_surf_30_inf(step,(part)),'g')
-plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
-plot(thresholds(part),AICK_orb_30_inf(step,(part)),'r')
-plot(thresholds(part),AICK_orb_10_300(step,(part)),'r-x')
+%figure(1)
+%clf
+%hold on
+%part = 1:75;
+%axis([0 thresholds(part(end)) 0 1.01])
+%step = 1;%:5:30;
+%plot(thresholds(part),AICK_surf_30_inf(step,(part)),'g')
+%plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
+%plot(thresholds(part),AICK_orb_30_inf(step,(part)),'r')
+%plot(thresholds(part),AICK_orb_10_300(step,(part)),'r-x')
 
-plot(thresholds(part),bowAICKsurf_bl_0_15_0_BowAICKv2_mat_pos(step,(part)),'b-x')
-plot(thresholds(part),bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos(step,(part)),'b-o')
-plot(thresholds(part),bowAICKsurf_bl_0_25_0_BowAICKv2_mat_pos(step,(part)),'m')
-plot(thresholds(part),bowAICKsurf_bl_0_3_0_BowAICKv2_mat_pos(step,(part)),'m-x')
+%plot(thresholds(part),bowAICKsurf_bl_0_15_0_BowAICKv2_mat_pos(step,(part)),'b-x')
+%plot(thresholds(part),bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos(step,(part)),'b-o')
+%plot(thresholds(part),bowAICKsurf_bl_0_25_0_BowAICKv2_mat_pos(step,(part)),'m')
+%plot(thresholds(part),bowAICKsurf_bl_0_3_0_BowAICKv2_mat_pos(step,(part)),'m-x')
 plot(thresholds(part),bowAICKsurf_bl_0_35_0_BowAICKv2_mat_pos(step,(part)),'m-o')
 
 
 
 
-legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast')
+%legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast')
 
 
 
