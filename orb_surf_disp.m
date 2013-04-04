@@ -1,11 +1,15 @@
 run surf_data
 run orb_data
 
-AICK_surf_30_inf = originalAICKsurf_0_AICK_mat_pos;
-AICK_surf_5_200  = originalAICKsurf_1_AICK_mat_pos;
+AICK_surf_30_inf 	= originalAICKsurf_0_AICK_mat_pos;
+AICK_surf_30_inf_time 	= originalAICKsurf_0_AICK_avg_time;
+AICK_surf_5_200  	= originalAICKsurf_1_AICK_mat_pos;
+AICK_surf_5_200_time 	= originalAICKsurf_1_AICK_avg_time;
 
-AICK_orb_30_inf = originalAICKorb_0_AICK_mat_pos;
-AICK_orb_10_300  = originalAICKorb_1_AICK_mat_pos;
+AICK_orb_30_inf 	= originalAICKorb_0_AICK_mat_pos;
+AICK_orb_30_inf_time 	= originalAICKorb_0_AICK_avg_time;
+AICK_orb_10_300  	= originalAICKorb_1_AICK_mat_pos;
+AICK_orb_10_300_time 	= originalAICKorb_1_AICK_avg_time;
 
 disp('Running matlab script');
 figure(1)
@@ -38,9 +42,20 @@ legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast')
 % plot(originalAICKsurf_1_AICK_mat_pos(:,2*15),'g')
 % plot(bowAICKsurf1000_bl_02_3_BowAICKv2_mat_pos(:,2*15),'g-x')
 
-%figure(3)
-%clf
-%hold on
+figure(3)
+clf
+hold on
+plot(log2(AICK_surf_10_300_time),'g')
+plot(log2(AICK_surf_5_200_time),'g-x')
+plot(log2(AICK_orb_30_inf_time),'r')
+plot(log2(AICK_orb_10_300_time),'r-x')
+
+plot(log2(bowAICKsurf_bl_0_15_0_BowAICKv2),'b-x')
+plot(log2(bowAICKsurf_bl_0_2_0_BowAICKv2),'b-o')
+plot(log2(bowAICKsurf_bl_0_25_0_BowAICKv2),'m')
+plot(log2(bowAICKsurf_bl_0_3_0_BowAICKv2),'m-x')
+plot(log2(bowAICKsurf_bl_0_35_0_BowAICKv2),'m-o')
+
 %plot(log2(originalAICKsurf_3_AICK_avg_time),'g')
 %plot(log2(bowAICKsurf1000_bl_02_2_BowAICKv2_avg_time),'g-x')
 %plot(log2(originalAICKorb_0_AICK_avg_time),'r')
