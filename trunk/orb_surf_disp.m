@@ -1,26 +1,28 @@
 run surf_data
 run orb_data
+run orb_data2
+run orb_data3
 
-AICK_surf_30_inf 	= originalAICKsurf_0_AICK_mat_pos;
+AICK_surf_30_inf 		= originalAICKsurf_0_AICK_mat_pos;
 AICK_surf_30_inf_time 	= originalAICKsurf_0_AICK_avg_time;
-bowAICK_surf_30_inf	= bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos;
+bowAICK_surf_30_inf		= bowAICKsurf_bl_0_2_0_BowAICKv2_mat_pos;
 bowAICK_surf_30_inf_time= bowAICKsurf_bl_0_2_0_BowAICKv2_avg_time;
 
-AICK_surf_5_200  	= originalAICKsurf_1_AICK_mat_pos;
+AICK_surf_5_200  		= originalAICKsurf_1_AICK_mat_pos;
 AICK_surf_5_200_time 	= originalAICKsurf_1_AICK_avg_time;
 bowAICK_surf_5_200     	= bowAICKsurf_bl_0_25_1_BowAICKv2_mat_pos;
 bowAICK_surf_5_200_time	= bowAICKsurf_bl_0_25_1_BowAICKv2_avg_time;
 
 
-AICK_orb_30_inf 	= originalAICKorb_0_AICK_mat_pos;
-AICK_orb_30_inf_time 	= originalAICKorb_0_AICK_avg_time;
-bowAICK_orb_30_inf 	= bowAICKorb_bl_0_2_0_BowAICKv2_mat_pos;
-bowAICK_orb_30_inf_time = bowAICKorb_bl_0_2_0_BowAICKv2_avg_time;
+AICK_orb_30_inf			= originalAICKorb_0_AICK_mat_pos;
+AICK_orb_30_inf_time	= originalAICKorb_0_AICK_avg_time;
+bowAICK_orb_30_inf		= bowAICKorb_bl_300_0_BowAICKv2_mat_pos;
+bowAICK_orb_30_inf_time = bowAICKorb_bl_300_0_BowAICKv2_avg_time;
 
-AICK_orb_10_300  	= originalAICKorb_1_AICK_mat_pos;
+AICK_orb_10_300			= originalAICKorb_1_AICK_mat_pos;
 AICK_orb_10_300_time 	= originalAICKorb_1_AICK_avg_time;
-bowAICK_10_300_inf      = bowAICKorb_bl_0_2_1_BowAICKv2_mat_pos;
-bowAICK_10_300_inf_time = bowAICKorb_bl_0_2_1_BowAICKv2_avg_time;
+bowAICK_orb_10_300		= bowAICKorb_bl_330_1_BowAICKv2_mat_pos;
+bowAICK_orb_10_300_time = bowAICKorb_bl_330_1_BowAICKv2_avg_time;
 
 disp('Running matlab script');
 figure(1)
@@ -28,7 +30,8 @@ clf
 hold on
 part = 1:75;
 axis([0 thresholds(part(end)) 0 1.01])
-step = 1;%:5:30;
+step = 1;
+
 plot(thresholds(part),AICK_surf_30_inf(step,(part)),'g')
 plot(thresholds(part),AICK_surf_5_200(step,(part)),'g-x')
 
@@ -54,7 +57,7 @@ legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK o
 %plot(AICK_orb_10_300(:,15),'r-x')
 %plot(bowAICK_orb_30_inf(:,15),'b')
 %plot(bowAICK_orb_10_300(:,15),'b-x')
-%legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK $
+legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK orb','AICK orb fast','bow AICK orb','bow AICK orb fast')
 
 figure(3)
 clf
@@ -71,5 +74,28 @@ plot(log2(AICK_orb_10_300_time),'r-x')
 plot(log2(bowAICK_orb_30_inf_time),'b')
 plot(log2(bowAICK_orb_10_300_time),'b-x')
 
-legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK $
+legend('AICK surf','AICK surf fast','bow AICK surf','bow AICK surf fast','AICK orb','AICK orb fast','bow AICK orb','bow AICK orb fast')
+
+figure(4)
+clf
+hold on
+%plot(thresholds(part),originalAICKorbIterations_0_AICK_mat_pos(step,(part)),'r')
+%plot(thresholds(part),originalAICKorbIterations_1_AICK_mat_pos(step,(part)),'g')
+%plot(thresholds(part),originalAICKorbIterations_2_AICK_mat_pos(step,(part)),'b')
+%plot(thresholds(part),originalAICKorbIterations_3_AICK_mat_pos(step,(part)),'m')
+%plot(thresholds(part),originalAICKorbIterations_4_AICK_mat_pos(step,(part)),'c')
+
+plot(thresholds(part),bowAICKorb_wordthreshold_bl_250_0_BowAICKv2_mat_pos(step,(part)),'r')
+plot(thresholds(part),bowAICKorb_wordthreshold_bl_290_0_BowAICKv2_mat_pos(step,(part)),'g')
+plot(thresholds(part),bowAICKorb_wordthreshold_bl_330_0_BowAICKv2_mat_pos(step,(part)),'b')
+plot(thresholds(part),bowAICKorb_wordthreshold_bl_370_0_BowAICKv2_mat_pos(step,(part)),'m')
+plot(thresholds(part),bowAICKorb_wordthreshold_bl_410_0_BowAICKv2_mat_pos(step,(part)),'c')
+figure(5)
+clf
+hold on
+plot(log2(bowAICKorb_wordthreshold_bl_250_0_BowAICKv2_avg_time),'r')
+plot(log2(bowAICKorb_wordthreshold_bl_290_0_BowAICKv2_avg_time),'g')
+plot(log2(bowAICKorb_wordthreshold_bl_330_0_BowAICKv2_avg_time),'b')
+plot(log2(bowAICKorb_wordthreshold_bl_370_0_BowAICKv2_avg_time),'m')
+plot(log2(bowAICKorb_wordthreshold_bl_410_0_BowAICKv2_avg_time),'c')
 

@@ -26,8 +26,7 @@ BowAICKv2::BowAICKv2(int max_points_)
 	max_points = max_points_;
 }
 
-BowAICKv2::BowAICKv2(int max_points_, int nr_iter_, float shrinking_)
-{
+BowAICKv2::BowAICKv2(int max_points_, int nr_iter_, float shrinking_){
 	name = "BowAICKv2";
 	nr_iter = nr_iter_;
 	feature_scale = 1;
@@ -35,6 +34,16 @@ BowAICKv2::BowAICKv2(int max_points_, int nr_iter_, float shrinking_)
 	feature_threshold = 0.2f;
 	shrinking = shrinking_;
 	max_points = max_points_;
+}
+
+BowAICKv2::BowAICKv2(int max_points_, int nr_iter_, float shrinking_,float scaling){
+	name = "BowAICKv2";
+	nr_iter = nr_iter_;
+	feature_scale = scaling;
+	shrinking = shrinking_;
+	max_points = max_points_;
+	distance_threshold = 0.015f;
+	feature_threshold = 0.2f;
 }
 
 BowAICKv2::~BowAICKv2(){printf("delete BowAICKv2\n");}
