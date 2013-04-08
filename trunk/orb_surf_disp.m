@@ -2,6 +2,8 @@ run surf_data
 run orb_data
 run orb_data2
 run orb_data3
+run orb_data4
+run orb_data5
 
 AICK_surf_30_inf 		= originalAICKsurf_0_AICK_mat_pos;
 AICK_surf_30_inf_time 	= originalAICKsurf_0_AICK_avg_time;
@@ -98,4 +100,24 @@ plot(log2(bowAICKorb_wordthreshold_bl_290_0_BowAICKv2_avg_time),'g')
 plot(log2(bowAICKorb_wordthreshold_bl_330_0_BowAICKv2_avg_time),'b')
 plot(log2(bowAICKorb_wordthreshold_bl_370_0_BowAICKv2_avg_time),'m')
 plot(log2(bowAICKorb_wordthreshold_bl_410_0_BowAICKv2_avg_time),'c')
+
+figure(6)
+clf
+hold on
+plot(thresholds(part),bowAICKorb_100words_wordthreshold_bl_330_0_BowAICKv2_mat_pos(step,(part)),'r')
+plot(thresholds(part),bowAICKorb_100words_wordthreshold_bl_350_0_BowAICKv2_mat_pos(step,(part)),'g')
+plot(thresholds(part),bowAICKorb_100words_wordthreshold_bl_370_0_BowAICKv2_mat_pos(step,(part)),'b')
+plot(thresholds(part),bowAICKorb_100words_wordthreshold_bl_390_0_BowAICKv2_mat_pos(step,(part)),'m')
+
+plot(thresholds(part),bowAICKorb_500words_wordthreshold_bl_330_0_BowAICKv2_mat_pos(step,(part)),'r-.')
+plot(thresholds(part),bowAICKorb_500words_wordthreshold_bl_350_0_BowAICKv2_mat_pos(step,(part)),'g-.')
+plot(thresholds(part),bowAICKorb_500words_wordthreshold_bl_370_0_BowAICKv2_mat_pos(step,(part)),'b-.')
+
+plot(thresholds(part),bowAICKorb_1000words_wordthreshold_bl_310_0_BowAICKv2_mat_pos(step,(part)),'r-x')
+plot(thresholds(part),bowAICKorb_1000words_wordthreshold_bl_330_0_BowAICKv2_mat_pos(step,(part)),'g-x')
+plot(thresholds(part),bowAICKorb_1000words_wordthreshold_bl_350_0_BowAICKv2_mat_pos(step,(part)),'b-x')
+
+plot(thresholds(part),bowAICKorb_5000words_wordthreshold_bl_290_0_BowAICKv2_mat_pos(step,(part)),'r-o')
+plot(thresholds(part),bowAICKorb_5000words_wordthreshold_bl_310_0_BowAICKv2_mat_pos(step,(part)),'g-o')
+plot(thresholds(part),bowAICKorb_5000words_wordthreshold_bl_330_0_BowAICKv2_mat_pos(step,(part)),'b-o')
 
