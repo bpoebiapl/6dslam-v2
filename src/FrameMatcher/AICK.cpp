@@ -11,7 +11,7 @@ AICK::AICK()
 	
 	feature_scale = 1;
 	
-	distance_threshold = 0.015f * feature_scale;
+	distance_threshold = 0.015f;
 	feature_threshold = 0.15f;
 	shrinking = 0.8f;
 	stabilety_threshold = 0.000001f;
@@ -25,7 +25,7 @@ AICK::AICK(int max_points_)
 	
 	feature_scale = 1;
 	
-	distance_threshold = 0.015f * feature_scale;
+	distance_threshold = 0.015f;
 	feature_threshold = 0.15f;
 	shrinking = 0.8f;
 	stabilety_threshold = 0.000001f;
@@ -39,11 +39,25 @@ AICK::AICK(int max_points_, int nr_iter_, float shrinking_)
 	
 	feature_scale = 1;
 	
-	distance_threshold = 0.015f * feature_scale;
+	distance_threshold = 0.015f;
 	feature_threshold = 0.15f;
 	shrinking = shrinking_;
 	stabilety_threshold = 0.000001f;
 	max_points = max_points_;
+}
+
+AICK::AICK(int max_points_, int nr_iter_, float shrinking_, float scaling)
+{
+	name = "AICK";
+	nr_iter = nr_iter_;
+	feature_scale = scaling;
+	max_points = max_points_;
+	shrinking = shrinking_;
+	
+	distance_threshold = 0.015f;
+	feature_threshold = 0.15f;
+	stabilety_threshold = 0.000001f;
+
 }
 
 AICK::~AICK(){printf("delete AICK\n");}

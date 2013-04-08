@@ -37,6 +37,7 @@ class BowAICKv2: public FrameMatcher
 		BowAICKv2();
 		BowAICKv2(int max_points_);
 		BowAICKv2(int max_points_, int nr_iter_, float shrinking_);
+		BowAICKv2(int max_points_, int nr_iter_, float shrinking_, float scaling);
 		~BowAICKv2();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);
 		float getAlpha(int iteration);

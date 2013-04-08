@@ -38,6 +38,7 @@ class AICK: public FrameMatcher
 		AICK();
 		AICK(int max_points_);
 		AICK(int max_points_,int nr_iter_ , float shrinking_);
+		AICK(int max_points_,int nr_iter_ , float shrinking_, float scaling);
 		~AICK();
 		Transformation * getTransformation(RGBDFrame * src, RGBDFrame * dst);
 		float getAlpha(int iteration);
