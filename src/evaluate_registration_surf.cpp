@@ -106,7 +106,7 @@ Map3D * mymap;
 bool mycomparison1 (test_task * i,test_task * j) {return (i->src->frame->id - i->dst->frame->id) > (j->src->frame->id - j->dst->frame->id);}
 
 /////////////////////////////////////////////
-
+int id_counter = 0;
 void * start_test_thread( void *ptr ){
 	bool run = true;
 	while(run){
@@ -114,10 +114,11 @@ void * start_test_thread( void *ptr ){
 		if(tasks.size() > 0)
 		{
 			int t = tasks.front();
+			
 			tasks.pop_front();
 			pthread_mutex_unlock(&tasks_mutex);
 			frames->at(t)->frame = new RGBDFrame(frames->at(t)->frame_input,mymap->extractor,mymap->segmentation);
-			//usleep(100000);
+			frames->at(t)->frame->id = t;
 			pthread_mutex_lock(&done_tasks_mutex);
 			done_tasks++;
 			pthread_mutex_unlock(&done_tasks_mutex);
@@ -302,7 +303,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	pthread_mutex_lock( &transform_tasks_mutex );
 	vector<test_task * > transform_tasks_now;
 	for(unsigned int k = 0; k < matchers.size(); k++){
-		printf("matcher: %i\n",k);
+		//printf("matcher: %i\n",k);
 		for(int i = 0; i < (int)all_frames->size(); i++){
 			for(int j = i-1; j >=  max(0,i-backing.at(k)); j-=1){
 				test_task * t = new test_task();
@@ -316,7 +317,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 			}
 		}
 	}
-    printf("total tasks to be done: %i\n",transform_tasks->size());
+    //printf("total tasks to be done: %i\n",transform_tasks->size());
 	pthread_mutex_unlock(&transform_tasks_mutex);
 	
 	struct timeval test_start, test_end;
@@ -324,14 +325,14 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	while(transform_nr_done_tasks() < transform_added_tasks){
 		gettimeofday(&test_end, NULL);
 		printf("%i/%i Time spent: %f\n",transform_nr_done_tasks(),transform_added_tasks,(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f);
-		sleep(10);
+		sleep(20);
 		//usleep(5000000);
 	}
 
 	float max_thresh_rot = 0.25;
 	float max_thresh_pos = 0.1;
 	int thresh_steps = 150;
-	
+	//printf("analyze time\n");
 	vector< vector< vector<Analyzation_data * > * > * > * results = new vector<vector<vector<Analyzation_data * > * > * >();
 	for(int i = 0; i < matchers.size(); i++){
 		results->push_back(new vector<vector<Analyzation_data * > * >());
@@ -340,10 +341,16 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 			results->back()->push_back(new vector<Analyzation_data * >());
 		}
 	}
+	
+	//printf("transform_tasks_now.size() = %i\n",transform_tasks_now.size());
+	
 	for(int i = 0; i < transform_tasks_now.size(); i++){
+		//printf("i:%i\n",i);
 		test_task * t = transform_tasks_now.at(i);
 		int step = abs(t->src->frame->id - t->dst->frame->id);
 		int matcher_id = t->matcher_id;
+		//printf("step:%i matcher_id:%i\n",step,matcher_id);
+		//printf("%i - %i = %i\n",t->src->frame->id,t->dst->frame->id,t->src->frame->id-t->dst->frame->id);
 		results->at(matcher_id)->at(step)->push_back(t->result);
 	}
 	
@@ -400,22 +407,6 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	}
 }
 
-BowAICKv2 * current_matcher;
-
-void switch_callback_iter( int position )				{current_matcher->nr_iter = position;}
-void switch_callback_max_points( int position )			{current_matcher->max_points = position;}
-void switch_callback_shrinking( int position )			{current_matcher->shrinking = 0.01*float(position);}
-void switch_callback_scaling( int position )			{current_matcher->feature_scale = 0.001*float(position);}
-void switch_callback_feature_threshold( int position )	{current_matcher->feature_threshold = 0.0001*float(position);}
-void switch_callback_distance_threshold( int position )	{current_matcher->distance_threshold = 0.0001*float(position);}
-void switch_callback_bow_threshold( int position )		{
-	string bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
-	vector<FeatureDescriptor * > words;
-	words.clear();
-	for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
-	for(int i = 0; i < frames->size(); i++){printf("updating wrods for %i\n",i);frames->at(i)->frame->setWords(words,0.0001*float(position));}
-}
-
 int main(int argc, char **argv)
 {
 	printf("--------------------START--------------------\n");
@@ -425,8 +416,8 @@ int main(int argc, char **argv)
 	calib1->cx			= 318.6;
 	calib1->cy			= 255.3;
 	calib1->ds			= 1.035;
-	calib1->scale			= 5000;
-	calib1->words 			= vector<FeatureDescriptor * >();
+	calib1->scale		= 5000;
+	calib1->words 		= vector<FeatureDescriptor * >();
 
 	SurfExtractor * surf = new SurfExtractor();
 	surf->calibration = calib1;
@@ -473,42 +464,127 @@ int main(int argc, char **argv)
 	matchers.clear();
 	backing.clear();
 
-	matchers.push_back(new AICK(10000,30,0.8));
-	backing.push_back(30);
+	double scaling = 1;
+	int steps = 2;
+	matchers.push_back(new AICK(10000,25,0.8,scaling));
+	backing.push_back(steps);
+	
+	test(frames,"originalAICKsurf",matchers,backing);
+	matchers.clear();
+	backing.clear();
+	
+	matchers.push_back(new AICK(400,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(300,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(250,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(200,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(150,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(100,25,0.8,scaling));backing.push_back(steps);
 
-	matchers.push_back(new AICK(200,5,0.3));
-	backing.push_back(30);
+	
+	test(frames,"originalAICKsurfKeyPoints",matchers,backing);
+	matchers.clear();
+	backing.clear();
+/*
+	matchers.push_back(new AICK(350,25,0.8,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(350,15,0.7,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(350,10,0.6,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(350,7,0.45,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(350,4,0.4,scaling));backing.push_back(steps);
+	matchers.push_back(new AICK(350,1,0.4,scaling));backing.push_back(steps);
 
-        test(frames,"originalAICKsurf",matchers,backing);
+	 
+	//test(frames,"originalAICKorbIterations",matchers,backing);
 
-        matchers.clear();
-        backing.clear();
+	char buff[250];
+	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 1000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	matchers.clear();
+	backing.clear();
+	matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
+	
+	for(int j = 300; j <= 400; j+=10){
+		sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
+		//for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+		//test(frames,string(buff),matchers,backing);
+	}
 
-        matchers.push_back(new BowAICKv2(10000,30,0.8));
-        backing.push_back(30);
+	matchers.clear();
+	backing.clear();
+	matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
 
-        matchers.push_back(new BowAICKv2(200,5,0.3));
-        backing.push_back(30);
+	//////////////////////////////////////	
+	bow_path = "bow_output/library_100_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 100; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",370);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,370);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",390);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,390);}
+	test(frames,string(buff),matchers,backing);
 
-        bow_path = "bow_output/library_1000_1_10_%i.feature.surf";
-        words.clear();
-        for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new SurfFeatureDescriptor64(string(buff)));}
+	//////////////////////////////////////	
+	bow_path = "bow_output/library_500_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 500; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",370);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,370);}
+	test(frames,string(buff),matchers,backing);
+	
+	//////////////////////////////////////
+	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 1000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",310);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,310);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
 
-        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.15f);}
-        test(frames,"bowAICKsurf_bl_0_15",matchers,backing);
+	//////////////////////////////////////
+	bow_path = "bow_output/library_5000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 5000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
 
-        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.2f);}
-        test(frames,"bowAICKsurf_bl_0_2",matchers,backing);
-
-        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.25f);}
-	test(frames,"bowAICKsurf_bl_0_25",matchers,backing);
-
-        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.3f);}
-        test(frames,"bowAICKsurf_bl_0_3",matchers,backing);
-
-        for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,0.35f);}
-        test(frames,"bowAICKsurf_bl_0_35",matchers,backing);
-
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",290);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,290);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",310);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,310);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+*/
 	printf("---------------------END---------------------\n");
 	return 0;
 }

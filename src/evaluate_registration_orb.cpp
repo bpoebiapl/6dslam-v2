@@ -407,22 +407,6 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	}
 }
 
-BowAICKv2 * current_matcher;
-
-void switch_callback_iter( int position )				{current_matcher->nr_iter = position;}
-void switch_callback_max_points( int position )			{current_matcher->max_points = position;}
-void switch_callback_shrinking( int position )			{current_matcher->shrinking = 0.01*float(position);}
-void switch_callback_scaling( int position )			{current_matcher->feature_scale = 0.001*float(position);}
-void switch_callback_feature_threshold( int position )	{current_matcher->feature_threshold = 0.0001*float(position);}
-void switch_callback_distance_threshold( int position )	{current_matcher->distance_threshold = 0.0001*float(position);}
-void switch_callback_bow_threshold( int position )		{
-	string bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
-	vector<FeatureDescriptor * > words;
-	words.clear();
-	for(int i = 0; i < 1000; i++){char buff[250];sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
-	for(int i = 0; i < frames->size(); i++){printf("updating wrods for %i\n",i);frames->at(i)->frame->setWords(words,0.0001*float(position));}
-}
-
 int main(int argc, char **argv)
 {
 	printf("--------------------START--------------------\n");
@@ -432,8 +416,8 @@ int main(int argc, char **argv)
 	calib1->cx			= 318.6;
 	calib1->cy			= 255.3;
 	calib1->ds			= 1.035;
-	calib1->scale			= 5000;
-	calib1->words 			= vector<FeatureDescriptor * >();
+	calib1->scale		= 5000;
+	calib1->words 		= vector<FeatureDescriptor * >();
 
 	OrbExtractor * orb = new OrbExtractor();
 	orb->nr_features = 1100;
@@ -482,11 +466,11 @@ int main(int argc, char **argv)
 	backing.clear();
 
 	double scaling = 0.0005;
-	int steps = 30;
+	int steps = 2;
 	matchers.push_back(new AICK(10000,25,0.8,scaling));
 	backing.push_back(steps);
 	
-	test(frames,"originalAICKorb",matchers,backing);
+	//test(frames,"originalAICKorb",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -498,7 +482,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(100,25,0.8,scaling));backing.push_back(steps);
 
 	
-	test(frames,"originalAICKorbKeyPoints",matchers,backing);
+	//test(frames,"originalAICKorbKeyPoints",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -509,53 +493,99 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(350,4,0.4,scaling));backing.push_back(steps);
 	matchers.push_back(new AICK(350,1,0.4,scaling));backing.push_back(steps);
 
-	
-	test(frames,"originalAICKorbIterations",matchers,backing);
+	 
+	//test(frames,"originalAICKorbIterations",matchers,backing);
 
-
-	
-	for(int j = 300; j <= 400; j+=10){
-		matchers.clear();
-		backing.clear();
-		matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
-		bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
-		words.clear();
-		char buff[250];
-		for(int i = 0; i < 1000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
-		sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
-		for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
-		test(frames,string(buff),matchers,backing);
-	}
-
-	//matchers.push_back(new AICK(250,10,0.6,scaling));
-	//((AICK * )matchers.at(1))->feature_scale = scaling;
-	//backing.push_back(30);
-
-	//test(frames,"originalAICKorb",matchers,backing);
-
-
-
-	//matchers.push_back(new BowAICKv2(10000,30,0.8));
-	//((BowAICKv2 * )matchers.at(0))->feature_scale = scaling;
-	//backing.push_back(30);
-/*
-	matchers.push_back(new BowAICKv2(250,10,0.6));
-	//((BowAICKv2 * )matchers.at(1))->feature_scale = scaling;
-	backing.push_back(1);
-
+	char buff[250];
 	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
 	words.clear();
-	char buff[250];
 	for(int i = 0; i < 1000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
-	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
-	printf("starting test...\n");
-	for(double j = 0.0002; j <= 0.0008; j+=0.00001){
-		sprintf(buff,"bowAICKorb_bl_330_scale_%i",int(j*1000000));
-		((BowAICKv2 * )matchers.at(0))->feature_scale = j;
-		//((BowAICKv2 * )matchers.at(1))->feature_scale = j;
-		test(frames,string(buff),matchers,backing);
+	matchers.clear();
+	backing.clear();
+	matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
+	
+	for(int j = 300; j <= 400; j+=10){
+		sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
+		//for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+		//test(frames,string(buff),matchers,backing);
 	}
-*/	
+
+	matchers.clear();
+	backing.clear();
+	matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
+
+	//////////////////////////////////////	
+	bow_path = "bow_output/library_100_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 100; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",370);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,370);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_100words_wordthreshold_bl_%i",390);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,390);}
+	test(frames,string(buff),matchers,backing);
+
+	//////////////////////////////////////	
+	bow_path = "bow_output/library_500_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 500; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_500words_wordthreshold_bl_%i",370);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,370);}
+	test(frames,string(buff),matchers,backing);
+	
+	//////////////////////////////////////
+	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 1000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",310);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,310);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_1000words_wordthreshold_bl_%i",350);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,350);}
+	test(frames,string(buff),matchers,backing);
+
+	//////////////////////////////////////
+	bow_path = "bow_output/library_5000_1_10_%i.feature.orb";
+	words.clear();
+	for(int i = 0; i < 5000; i++){sprintf(buff,bow_path.c_str(),i);words.push_back(new OrbFeatureDescriptor(string(buff)));}
+
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",290);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,290);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",310);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,310);}
+	test(frames,string(buff),matchers,backing);
+	
+	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",330);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
+	test(frames,string(buff),matchers,backing);
+	
 	printf("---------------------END---------------------\n");
 	return 0;
 }
