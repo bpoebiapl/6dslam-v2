@@ -325,7 +325,7 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 	while(transform_nr_done_tasks() < transform_added_tasks){
 		gettimeofday(&test_end, NULL);
 		//printf("%i/%i Time spent: %f\n",transform_nr_done_tasks(),transform_added_tasks,(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f);
-		sleep(20);
+		sleep(1);
 		//usleep(5000000);
 	}
 
@@ -389,8 +389,10 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 			printf("; ");
 		}
 		printf("];\n");
-		printf("%s_%i_%s_avg_time = [",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
-
+		printf("%s_%i_%s_avg_time_vec = [",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str());
+		
+		double avg_time_total = 0;
+		double total_trans_total = 0;
 		for(int step = 1; step < results->at(matcher)->size(); step++)
 		{
 			double avg_time = 0;
@@ -400,10 +402,13 @@ void test(vector< frame_data * > * all_frames, string dataset, vector<FrameMatch
 				Analyzation_data * data = current->at(nr);
 				avg_time+=data->val_time;
 				total_trans++;
+				avg_time_total+=data->val_time;
+				total_trans_total++;
 			}
 			printf("%.5f ",avg_time/total_trans);
 		}
 		printf("];\n");
+		printf("%s_%i_%s_avg_time = [ %f ];\n",dataset.c_str(),matcher,matchers.at(matcher)->name.c_str(),avg_time_total/total_trans_total);
 	}
 }
 
@@ -452,7 +457,7 @@ int main(int argc, char **argv)
 	gettimeofday(&test_end, NULL);
 	printf("%f %i/%i\n",(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f,nr_done_tasks(),added_tasks);
 	
-	for(int i = 0; i < 12; i++){
+	for(int i = 0; i < 4; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
