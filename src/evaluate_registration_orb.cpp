@@ -457,7 +457,7 @@ int main(int argc, char **argv)
 	gettimeofday(&test_end, NULL);
 	printf("%f %i/%i\n",(test_end.tv_sec*1000000+test_end.tv_usec-(test_start.tv_sec*1000000+test_start.tv_usec))/1000000.0f,nr_done_tasks(),added_tasks);
 	
-	for(int i = 0; i < 4; i++){
+	for(int i = 0; i < 3; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
@@ -471,11 +471,11 @@ int main(int argc, char **argv)
 	backing.clear();
 
 	double scaling = 0.0005;
-	int steps = 2;
+	int steps = 30;
 	matchers.push_back(new AICK(10000,25,0.8,scaling));
 	backing.push_back(steps);
 	
-	//test(frames,"originalAICKorb",matchers,backing);
+	test(frames,"originalAICKorb",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(100,25,0.8,scaling));backing.push_back(steps);
 
 	
-	//test(frames,"originalAICKorbKeyPoints",matchers,backing);
+	test(frames,"originalAICKorbKeyPoints",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(350,1,0.4,scaling));backing.push_back(steps);
 
 	 
-	//test(frames,"originalAICKorbIterations",matchers,backing);
+	test(frames,"originalAICKorbIterations",matchers,backing);
 
 	char buff[250];
 	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
@@ -511,8 +511,8 @@ int main(int argc, char **argv)
 	
 	for(int j = 300; j <= 400; j+=10){
 		sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
-		//for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
-		//test(frames,string(buff),matchers,backing);
+		for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+		test(frames,string(buff),matchers,backing);
 	}
 
 	matchers.clear();
