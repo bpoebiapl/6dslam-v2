@@ -443,7 +443,7 @@ int main(int argc, char **argv)
 	for(int i = 0; i < frames->size(); i++){tasks.push_back(i);}
 	
 	transform_tasks = new vector<test_task * >();
-	for(int i = 0; i < 10; i++){
+	for(int i = 0; i < 1; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, start_test_thread, NULL);
 	}
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, transform_start_test_thread, NULL);
 	}
-	
+	exit(0);
 	vector<FrameMatcher * > matchers;
 	vector<int> backing;
 	string bow_path;

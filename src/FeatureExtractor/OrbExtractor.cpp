@@ -6,7 +6,12 @@
 #include "highgui.h"
 #include <opencv.hpp>
 
-OrbExtractor::OrbExtractor(){ nr_features = 1000;}
+OrbExtractor::OrbExtractor(){ 
+	nr_features = 1000;
+	total_time = 0;
+	total_frames = 0;
+	total_keypoints = 0;
+}
 
 OrbExtractor::~OrbExtractor(){}
 using namespace std;
@@ -14,11 +19,10 @@ using namespace std;
 bool comparison_orb (KeyPoint * i,KeyPoint * j) { return (i->stabilety>j->stabilety); }
 
 KeyPointSet * OrbExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_img){
-	KeyPointSet * keypoints = new KeyPointSet();
-	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
-	
+	KeyPointSet * keypoints = new KeyPointSet();
+
 	cv::ORB orb = cv::ORB(nr_features,1.2f, 8, 3, 0,2, cv::ORB::HARRIS_SCORE, 31);
 	cv::Mat img(rgb_img);
 	cv::Mat d_img(depth_img);
@@ -95,7 +99,11 @@ KeyPointSet * OrbExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_i
 	sort(keypoints->invalid_key_points.begin(),keypoints->invalid_key_points.end(),comparison_orb);
 	
 	gettimeofday(&end, NULL);
-	float time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	double time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	total_time += time;
+	total_frames++;
+	total_keypoints+=keypoints->valid_key_points.size();
+	printf("avg_time: %f avg_keypoints: %f\n",total_time/double(total_frames),double(total_keypoints)/double(total_frames));
 	//if(keypoints->invalid_key_points.size() < 10){printf("too few keypoints\n");exit(0);}
 	//printf("Orb cost: %f\n",time);
 	

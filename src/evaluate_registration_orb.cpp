@@ -444,7 +444,7 @@ int main(int argc, char **argv)
 	for(int i = 0; i < frames->size(); i++){tasks.push_back(i);}
 	
 	transform_tasks = new vector<test_task * >();
-	for(int i = 0; i < 10; i++){
+	for(int i = 0; i < 1; i++){
 		pthread_t mythread;
 		pthread_create( &mythread, NULL, start_test_thread, NULL);
 	}
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(10000,25,0.8,scaling));
 	backing.push_back(steps);
 	
-	test(frames,"originalAICKorb",matchers,backing);
+	//test(frames,"originalAICKorb",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(100,25,0.8,scaling));backing.push_back(steps);
 
 	
-	test(frames,"originalAICKorbKeyPoints",matchers,backing);
+	//test(frames,"originalAICKorbKeyPoints",matchers,backing);
 	matchers.clear();
 	backing.clear();
 	
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
 	matchers.push_back(new AICK(350,1,0.4,scaling));backing.push_back(steps);
 
 	 
-	test(frames,"originalAICKorbIterations",matchers,backing);
+	//test(frames,"originalAICKorbIterations",matchers,backing);
 
 	char buff[250];
 	bow_path = "bow_output/library_1000_1_10_%i.feature.orb";
@@ -508,7 +508,20 @@ int main(int argc, char **argv)
 	matchers.clear();
 	backing.clear();
 	matchers.push_back(new BowAICKv2(350,10,0.6,scaling));	backing.push_back(steps);
-	
+	int j;
+	j = 230;
+	sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+	test(frames,string(buff),matchers,backing);
+	j = 330;
+	sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+	test(frames,string(buff),matchers,backing);
+	j = 430;
+	sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
+	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
+	test(frames,string(buff),matchers,backing);
+	/*
 	for(int j = 300; j <= 400; j+=10){
 		sprintf(buff,"bowAICKorb_wordthreshold_bl_%i",j);
 		for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,j);}
@@ -590,7 +603,7 @@ int main(int argc, char **argv)
 	sprintf(buff,"bowAICKorb_5000words_wordthreshold_bl_%i",330);
 	for(int i = 0; i < frames->size(); i++){frames->at(i)->frame->setWords(words,330);}
 	test(frames,string(buff),matchers,backing);
-	
+*/	
 	printf("---------------------END---------------------\n");
 	return 0;
 }
