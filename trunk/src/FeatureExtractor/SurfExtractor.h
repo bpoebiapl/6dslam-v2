@@ -6,6 +6,10 @@
 class SurfExtractor: public FeatureExtractor
 {
 	public:
+		double total_time;
+		int total_frames;
+		int total_keypoints;
+		int nr_features;
 		bool upright;		// run in rotation invariant mode? 
 		int octaves;		// number of octaves to calculate
 		int intervals;		// number of intervals per octave

@@ -51,13 +51,15 @@ aick_orb        = originalAICKorb_0_AICK_mat_pos;
 aick_orb_time   = originalAICKorb_0_AICK_avg_time;
 
 aick_surf       = originalAICKsurf_0_AICK_mat_pos;
-aick_orb_time   = originalAICKsurf_0_AICK_avg_time;
+aick_surf_time  = originalAICKsurf_0_AICK_avg_time;
 
 ndt             = GICPandNDTroom1_0_NDTMatcher_mat_pos;
 ndt_time        = GICPandNDTroom1_0_NDTMatcher_avg_time;
 
 gicp            = GICPandNDTroom1_1_BasicGIcpMatcher_mat_pos;
 gicp_time       = GICPandNDTroom1_1_BasicGIcpMatcher_avg_time;
+
+close all
 
 %%
 
@@ -126,6 +128,7 @@ ylabel('success ratio');
 data = varyKeypointsDataOrb;
 names = varyKeypointsNameOrb;
 toshow = 1:size(data,1);
+toshow = [1 3 6];
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -178,6 +181,7 @@ ylabel('success ratio');
 data = varyIterationsDataOrb;
 names = varyIterationsNameOrb;
 toshow = 1:size(data,1);
+toshow = [1 3 4 6];
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -230,6 +234,7 @@ ylabel('success ratio');
 data = varyKeypointsDataSurf;
 names = varyKeypointsNameSurf;
 toshow = 1:size(data,1);
+toshow = [1 4 6];
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -280,6 +285,7 @@ ylabel('success ratio');
 data = varyIterationsDataSurf;
 names = varyIterationsNameSurf;
 toshow = 1:size(data,1);
+toshow = [1 3 4];
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -360,7 +366,7 @@ ylabel('success ratio');
 
 data = varyWordThresholdDataSurf;
 names = varyWordThresholdNameSurf;
-toshow = 1:4:size(data,1);
+toshow = [1 13 19];%1:4:size(data,1);
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -423,7 +429,8 @@ ylabel('success ratio');
 
 data = varyWordThresholdDataOrb;
 names = varyWordThresholdNameOrb;
-toshow = 1:4:size(data,1);
+toshow = 1:1:size(data,1);
+toshow = [1 4 10];%1:1:size(data,1);
 for id=1:size(toshow,2)
     i = toshow(id);
     datavec = reshape(data(i,:,:),size(data,2),size(data,3));
@@ -445,3 +452,91 @@ for id=1:size(toshow,2)
     plot((1:size(d,1))/30,d,plotcol(id,:),'LineWidth',2.0);
 end
 legend(names(toshow,:),'Location','NorthEast')
+
+%%
+
+aick_orb_fast        = bowAICKorb_wordthreshold_bl_330_0_BowAICKv2_mat_pos;
+aick_orb_fast_time   = bowAICKorb_wordthreshold_bl_330_0_BowAICKv2_avg_time;
+
+aick_surf_fast       = bowAICKsurf_wordthreshold_bl_260_0_BowAICKv2_mat_pos;
+aick_surf_fast_time  = bowAICKsurf_wordthreshold_bl_260_0_BowAICKv2_avg_time; 
+
+figure()
+axis([0 max(thresholds(1:max_trid)) 0 1.01])
+hold on
+title('Translation performance')
+xlabel('threshold [m]');
+ylabel('success ratio');
+plot(thresholds(1:max_trid),aick_surf(step,(1:max_trid)),'r','LineWidth',2.0);
+plot(thresholds(1:max_trid),aick_surf_fast(step,(1:max_trid)),'r-o','LineWidth',2.0);
+plot(thresholds(1:max_trid),aick_orb(step,(1:max_trid)),'g','LineWidth',2.0);
+plot(thresholds(1:max_trid),aick_orb_fast(step,(1:max_trid)),'g-o','LineWidth',2.0);
+plot(thresholds(1:max_trid),ndt(step,(1:max_trid)),'b','LineWidth',2.0);
+plot(thresholds(1:max_trid),gicp(step,(1:max_trid)),'c','LineWidth',2.0);
+
+legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast','NDT','GICP','Location','SouthEast')
+
+figure()
+axis([0 1 0 1.01])
+hold on
+title(['Translation error <' num2str(thresholds(threshold_id))])
+xlabel('time between frames [s]');
+ylabel('success ratio');
+
+data = aick_surf(:,threshold_id);
+plot((1:size(data,1))/30,data,'r','LineWidth',2.0);
+
+data = aick_surf_fast(:,threshold_id);
+plot((1:size(data,1))/30,data,'r-o','LineWidth',2.0);
+
+data = aick_orb(:,threshold_id);
+plot((1:size(data,1))/30,data,'g','LineWidth',2.0);
+
+data = aick_orb_fast(:,threshold_id);
+plot((1:size(data,1))/30,data,'g-o','LineWidth',2.0);
+
+data = ndt(:,threshold_id);
+plot((1:size(data,1))/30,data,'b','LineWidth',2.0);
+
+data = gicp(:,threshold_id);
+plot((1:size(data,1))/30,data,'c','LineWidth',2.0);
+
+legend('AICK surf','AICK surf fast','AICK orb','AICK orb fast','NDT','GICP','Location','NorthEast')
+
+%%
+clc
+disp('')
+disp('start')
+%disp(['high performance: ' num2str(thresholds(high_performance)) ' average performance: ' num2str(thresholds(mid_performance)) ' low  performance: ' num2str(thresholds(low_performance))])
+disp(['Name                   | ' 'Runtime: ' '| e < ' num2str(thresholds(high_performance)) ' | e < ' num2str(thresholds(mid_performance)) ' | e < ' num2str(thresholds(low_performance))])
+data = aick_surf;
+data = data(step,:);
+disp(['AICK surf              | ' num2str(aick_surf_time) '  | ' num2str(data(high_performance)) '      | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = originalAICKsurfIterations_2_AICK_mat_pos;
+data = data(step,:);
+disp(['AICK surf fast         | ' num2str(originalAICKsurfIterations_2_AICK_avg_time) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = aick_surf_fast;
+data = data(step,:);
+disp(['AICK surf words fast   | ' num2str(aick_surf_fast_time) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = aick_orb;
+data = data(step,:);
+disp(['AICK orb               | ' num2str(aick_orb_time) '  | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = originalAICKorbIterations_2_AICK_mat_pos;
+data = data(step,:);
+disp(['AICK orb fast          | ' num2str(originalAICKorbIterations_2_AICK_avg_time) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = aick_orb_fast;
+data = data(step,:);
+disp(['AICK orb words fast    | ' num2str(aick_orb_fast_time) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+ 
+data = ndt;
+data = data(step,:);
+disp(['NDT                    | ' num2str(num2str(ndt_time)) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])
+
+data = gicp;
+data = data(step,:);
+disp(['GICP                   | ' num2str(num2str(gicp_time)) ' | ' num2str(data(high_performance)) '     | ' num2str(data(mid_performance)) '  | ' num2str(data(low_performance))])

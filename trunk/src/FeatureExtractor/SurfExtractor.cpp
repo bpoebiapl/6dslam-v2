@@ -15,6 +15,9 @@
 #include <algorithm>
 
 SurfExtractor::SurfExtractor(){
+	total_time = 0;
+	total_frames = 0;
+	total_keypoints = 0;
 	upright 		= true;
 	octaves 		= 5;
 	intervals 		= 5;
@@ -90,7 +93,8 @@ KeyPointSet * SurfExtractor::getKeyPointSet(pcl::PointCloud<pcl::PointXYZRGBNorm
 }
 
 KeyPointSet * SurfExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_img){
-
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
 	float d_scaleing	= calibration->ds/calibration->scale;
 	float centerX		= calibration->cx;
 	float centerY		= calibration->cy;
@@ -163,5 +167,11 @@ KeyPointSet * SurfExtractor::getKeyPointSet(IplImage * rgb_img,IplImage * depth_
 	sort(keypoints->invalid_key_points.begin(),keypoints->invalid_key_points.end(),comparison_surf);
 	//cvReleaseImage( &rgb_img );
 	
+	gettimeofday(&end, NULL);
+	double time = (end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec))/1000000.0f;
+	total_time += time;
+	total_frames++;
+	total_keypoints+=ipts.size();//keypoints->valid_key_points.size();
+	printf("avg_time: %f avg_keypoints: %f\n",total_time/double(total_frames),double(total_keypoints)/double(total_frames));	
 	return keypoints;
 }
