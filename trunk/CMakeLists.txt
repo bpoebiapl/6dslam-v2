@@ -169,3 +169,8 @@ target_link_libraries(evaluate_registration_surf ${PCL_LIBRARIES} ${OpenCV_LIBS}
 add_executable(evaluate_registration_orb src/evaluate_registration_orb.cpp)
 target_link_libraries(evaluate_registration_orb ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
 ###################
+
+add_executable(evaluate_registration_surf_weight src/evaluate_registration_surf_weight.cpp)
+target_link_libraries(evaluate_registration_surf_weight ${PCL_LIBRARIES} ${OpenCV_LIBS} map3d)
+
+###################
